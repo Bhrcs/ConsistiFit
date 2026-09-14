@@ -1,0 +1,8 @@
+.DS_Store
+.env
+flutter_app/.dart_tool/
+flutter_app/build/
+flutter_app/.flutter-plugins*
+*.jks
+*.keystore
+android/key.properties

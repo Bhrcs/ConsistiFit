@@ -1,0 +1,10 @@
+const fs=require('fs'); const assert=require('assert'); const zlib=require('zlib');
+const loader=fs.readFileSync('index.html','utf8'); const manifest=JSON.parse(fs.readFileSync('manifest.webmanifest','utf8')); const sw=fs.readFileSync('service-worker.js','utf8');
+const b64=[1,2,3,4,5,6].map(n=>fs.readFileSync(`payload/payload${n}.txt`,'utf8')).join('').replace(/\s+/g,'');
+const prototype=zlib.gunzipSync(Buffer.from(b64,'base64')).toString('utf8');
+assert(loader.includes('manifest.webmanifest')); assert(loader.includes('serviceWorker.register')); assert(manifest.name==='ConsistiFit'); assert(manifest.display==='standalone');
+for(let n=1;n<=6;n++) assert(sw.includes(`payload/payload${n}.txt`));
+assert(!prototype.toLowerCase().includes('rankfit'));
+const buttons=[...prototype.matchAll(/<button\b([^>]*)>/gi)]; const inactive=buttons.filter(m=>!m[1].includes('onclick=')&&!m[1].includes('disabled'));
+assert.equal(inactive.length,0,`buttons without actions: ${inactive.length}`);
+console.log(`PWA smoke test passed: ${buttons.length} prototype buttons, 0 inactive buttons.`);

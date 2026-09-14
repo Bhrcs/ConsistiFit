@@ -1,0 +1,5 @@
+{
+  "name": "consistifit-prototype",
+  "private": true,
+  "scripts": {"test": "node tests/pwa-smoke.test.js"}
+}

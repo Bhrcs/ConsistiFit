@@ -1,0 +1,2 @@
+import 'package:flutter/material.dart';
+class ProgressScreen extends StatelessWidget{const ProgressScreen({super.key});@override Widget build(BuildContext context)=>const SafeArea(child:Padding(padding:EdgeInsets.all(20),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text('PROGRESS',style:TextStyle(color:Color(0xFFD7FF3F),fontWeight:FontWeight.w800)),Text('89% consistency',style:TextStyle(fontSize:30,fontWeight:FontWeight.w900)),Text('18 workouts · 13.6 hours · 12 PRs',style:TextStyle(color:Colors.white60))])));}

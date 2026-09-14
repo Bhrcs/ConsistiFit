@@ -1,0 +1,2 @@
+import 'package:flutter/material.dart';
+class ProgramsScreen extends StatelessWidget{const ProgramsScreen({super.key});@override Widget build(BuildContext context)=>const Scaffold(body:SafeArea(child:Padding(padding:EdgeInsets.all(20),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text('PROGRAM',style:TextStyle(color:Color(0xFFD7FF3F),fontWeight:FontWeight.w800)),Text('ConsistiFit Foundation',style:TextStyle(fontSize:28,fontWeight:FontWeight.w900)),Text('Week 3 of 8 · Full Body A / B / C',style:TextStyle(color:Colors.white60))]))));}

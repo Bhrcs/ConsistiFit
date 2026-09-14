@@ -1,0 +1,2 @@
+import 'package:flutter/material.dart';
+class ProfileScreen extends StatelessWidget{const ProfileScreen({super.key});@override Widget build(BuildContext context)=>const SafeArea(child:Padding(padding:EdgeInsets.all(20),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text('PROFILE',style:TextStyle(color:Color(0xFFD7FF3F),fontWeight:FontWeight.w800)),Text('Matthew',style:TextStyle(fontSize:30,fontWeight:FontWeight.w900)),Text('Gold II · 128 workouts · 14 day streak',style:TextStyle(color:Colors.white60))])));}

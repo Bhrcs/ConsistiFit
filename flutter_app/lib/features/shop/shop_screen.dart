@@ -1,0 +1,2 @@
+import 'package:flutter/material.dart';
+class ShopScreen extends StatelessWidget{const ShopScreen({super.key});@override Widget build(BuildContext context)=>const Scaffold(body:SafeArea(child:Padding(padding:EdgeInsets.all(20),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text('REWARDS',style:TextStyle(color:Color(0xFFD7FF3F),fontWeight:FontWeight.w800)),Text('1,280 Coins',style:TextStyle(fontSize:28,fontWeight:FontWeight.w900)),Text('Cosmetics, streak shields and boosters. Coins never purchase RP.',style:TextStyle(color:Colors.white60))]))));}

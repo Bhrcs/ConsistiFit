@@ -1,79 +1,42 @@
-# ConsistiFit Investor Prototype
+# ConsistiFit
 
-This clickable browser prototype now demonstrates the core ConsistiFit training engine as well as the rank/reward loop.
+ConsistiFit is a mobile-first fitness app built around **consistency instead of raw workout volume**. Scheduled training, recovery, missions and healthy habits move the user through ranks while permanent account XP tracks long-term progression.
 
-## Investor demo flow
-1. Open `index.html`.
-2. Complete the 5-step onboarding:
-   - Goal
-   - Experience
-   - Equipment
-   - Training days
-   - Session length
-3. Generate the 8-week plan.
-4. Review the weekly schedule, including recovery/rest days.
-5. Start the program.
-6. On Home, open **Your Program** to view the full training block.
-7. Start and complete today's workout.
-8. Collect RP, XP, and Coins.
-9. Open Missions, Rank, Progress, Profile, and Shop.
+## Repository
+- `index.html` — GitHub Pages loader for the clickable investor prototype
+- `payload/` — compressed prototype UI payload
+- `manifest.webmanifest`, `service-worker.js`, `offline.html` — installable PWA layer
+- `flutter_app/` — production iOS/Android Flutter application scaffold
+- `supabase/` — Postgres schema, RLS and server-authoritative reward function
+- `docs/` — product, architecture, health/notification and roadmap specifications
+- `.github/workflows/pages.yml` — GitHub Pages deployment
 
-## Prototype concepts shown
-- Goal-based program selection
-- Experience-based scheduling
-- Equipment substitutions
-- 2–4+ day schedule logic
-- Training, recovery, and rest days
-- 8-week training blocks
-- Double-progression concept
-- Missed-workout reflow rules
-- Ranked consistency progression
-- XP and Coin rewards
-- Workout logging
-- Progress analytics
+## Core rules
+- Rank: Iron → Bronze → Silver → Gold → Platinum → Diamond → Master → Grandmaster
+- Account XP never decreases.
+- Rank reflects current consistency and may move over time.
+- Coins never purchase RP.
+- Scheduled recovery counts.
+- Extra unscheduled workouts do not farm RP.
+- Workout rewards are server-authoritative in production.
 
-All data is simulated. This prototype does not yet connect to a backend or health platform.
+## Current workout reward
+A scheduled workout plus difficulty check-in awards **35 RP, 240 XP and 85 Coins** once. The Supabase RPC makes the claim idempotent.
 
-## UI rework
-The investor prototype now uses a cleaner workout-app visual system:
-- Fitness photography on Home, Missions, Rank, Progress, and Profile
-- Reduced card/gradient clutter
-- Clear workout-first hierarchy
-- Reserved ad placements that stay outside active workouts
-- Cleaner missions list and consistency meter
-- Dedicated rank ladder presentation
-- Fitness-oriented progress screen
-- Profile layout designed around training history, rank, and achievements
+## PWA
+The prototype is installable and caches its core UI payload for offline reopening after the first successful load. iPhone users can use Safari → Share → Add to Home Screen; supported Android browsers can install it as a standalone app.
 
-## Interaction audit
-All visible static buttons have a working demo action. Dynamic panels also use actionable controls for navigation, settings, schedule changes, exercise replacement, history, records, inventory, purchases, and report actions.
+## Flutter
+The production source is under `flutter_app/`. On a machine with Flutter 3.44+/Dart 3.12+, run `flutter pub get`, `flutter test`, then `flutter run` with `SUPABASE_URL` and `SUPABASE_ANON_KEY` Dart defines.
 
-## Prototype photo licensing
+The project uses stable September 2026 packages: Riverpod 3.4.3, go_router 18.0.1, supabase_flutter 2.17.2, health 13.3.2 and flutter_local_notifications 22.3.1.
 
-The current prototype uses selected Pexels workout photographs. Pexels states that its photos can be used for free for personal and commercial projects under the Pexels License. Attribution is not required, but source information is retained here for recordkeeping.
+## Pexels photo sources
+The investor prototype uses selected Pexels workout photographs under the Pexels License. Attribution is not required, but sources are retained for recordkeeping. The people pictured are generic stock subjects and must not be presented as ConsistiFit endorsers/testimonials.
+- Marius Aholou: https://www.pexels.com/photo/a-man-using-dumbbells-11432959/
+- Tima Miroshnichenko: https://www.pexels.com/photo/a-man-stretching-at-the-gym-6389890/
+- Alexander Savchuk: https://www.pexels.com/photo/man-in-white-crew-neck-shirt-running-on-asphalt-road-9616175/
+- Marius Aholou: https://www.pexels.com/photo/a-muscular-man-working-out-11433059/
+- Alef Morais: https://www.pexels.com/photo/focused-athlete-portrait-in-a-gym-setting-36085104/
 
-These are stock photos used as generic fitness imagery. They must not be presented as testimonials or as endorsements of ConsistiFit by the people shown.
-
-### Photo sources
-- Marius Aholou / Pexels: https://www.pexels.com/photo/a-man-using-dumbbells-11432959/
-- Tima Miroshnichenko / Pexels: https://www.pexels.com/photo/a-man-stretching-at-the-gym-6389890/
-- Alexander Savchuk / Pexels: https://www.pexels.com/photo/man-in-white-crew-neck-shirt-running-on-asphalt-road-9616175/
-- Marius Aholou / Pexels: https://www.pexels.com/photo/a-muscular-man-working-out-11433059/
-- Alef Morais / Pexels: https://www.pexels.com/photo/focused-athlete-portrait-in-a-gym-setting-36085104/
-
-Pexels license: https://www.pexels.com/license/
-
-The prototype loads these images from Pexels over the internet. The app therefore needs an internet connection for the photos to appear in this demo build.
-
-## Workout session flow
-The prototype now includes a functional workout experience:
-- Active exercise selection
-- Set logging
-- Automatic 90-second rest timer
-- Rest-time adjustment and skip controls
-- Exercise form guide and history
-- Exercise substitutions
-- Post-workout difficulty check-in
-- Adaptive-training preview based on feedback
-- Workout summary sharing
-- Rank Points, XP, and Coin rewards after completion
+See `docs/ROADMAP.md` for account/credential/device-signing steps that cannot be provisioned from source code alone.

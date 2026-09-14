@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -12,6 +13,7 @@ import 'features/rank/rank_screen.dart';
 import 'features/shop/shop_screen.dart';
 import 'features/social/social_screen.dart';
 import 'features/workouts/workout_screen.dart';
+import 'services/health_connection_service.dart';
 
 final _router = GoRouter(
   initialLocation: '/',
@@ -44,8 +46,9 @@ class ShellScreen extends StatefulWidget {
   State<ShellScreen> createState() => _ShellScreenState();
 }
 
-class _ShellScreenState extends State<ShellScreen> {
+class _ShellScreenState extends State<ShellScreen> with WidgetsBindingObserver {
   int index = 0;
+  final HealthConnectionService health = HealthConnectionService();
   final pages = const [
     HomeScreen(),
     MissionsScreen(),
@@ -53,6 +56,32 @@ class _ShellScreenState extends State<ShellScreen> {
     ProgressScreen(),
     ProfileScreen(),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    unawaited(_syncHealth());
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) unawaited(_syncHealth());
+  }
+
+  Future<void> _syncHealth() async {
+    try {
+      await health.syncIfConnected();
+    } catch (_) {
+      // Keep the app usable if Health is unavailable or temporarily fails.
+    }
+  }
 
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -65,7 +94,10 @@ class _ShellScreenState extends State<ShellScreen> {
             : null,
         bottomNavigationBar: NavigationBar(
           selectedIndex: index,
-          onDestinationSelected: (value) => setState(() => index = value),
+          onDestinationSelected: (value) {
+            setState(() => index = value);
+            if (value == 1) unawaited(_syncHealth());
+          },
           destinations: const [
             NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'Home'),
             NavigationDestination(icon: Icon(Icons.checklist), label: 'Missions'),

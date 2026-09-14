@@ -1,2 +1,52 @@
 import 'package:flutter/material.dart';
-class RankScreen extends StatelessWidget{const RankScreen({super.key});@override Widget build(BuildContext context)=>const SafeArea(child:Padding(padding:EdgeInsets.all(20),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text('CONSISTENCY RANK',style:TextStyle(color:Color(0xFFD7FF3F),fontWeight:FontWeight.w800)),Text('Gold II',style:TextStyle(fontSize:36,fontWeight:FontWeight.w900)),Text('1,742 RP · 108 RP to Gold I',style:TextStyle(color:Colors.white60)),SizedBox(height:20),Text('Iron → Bronze → Silver → Gold → Platinum → Diamond → Master → Grandmaster')])));}
+import '../../models/models.dart';
+import '../../services/supabase_service.dart';
+import '../../services/workout_engine.dart';
+
+class RankScreen extends StatelessWidget {
+  const RankScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) => SafeArea(
+        child: FutureBuilder<ProfileSnapshot?>(
+          future: SupabaseService().profile(),
+          builder: (context, snapshot) {
+            final profile = snapshot.data ?? ProfileSnapshot.demo;
+            final engine = const WorkoutEngine();
+            final next = engine.nextRank(profile.rankPoints);
+            final nextRemaining = next == null ? 0 : next.minimumRp - profile.rankPoints;
+            return ListView(
+              padding: const EdgeInsets.all(20),
+              children: <Widget>[
+                Text('CONSISTENCY RANK', style: TextStyle(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.w800)),
+                Text(profile.currentRank, style: const TextStyle(fontSize: 36, fontWeight: FontWeight.w900)),
+                Text(
+                  next == null ? '${profile.rankPoints} RP · Highest rank reached' : '${profile.rankPoints} RP · $nextRemaining RP to ${next.label}',
+                  style: const TextStyle(color: Colors.white60),
+                ),
+                const SizedBox(height: 18),
+                const Card(
+                  child: Padding(
+                    padding: EdgeInsets.all(16),
+                    child: Text('Rank tracks current consistency. Account XP is permanent, while rank can move up or down from weekly adherence. Extra unscheduled workouts do not farm ranked rewards.'),
+                  ),
+                ),
+                const SizedBox(height: 18),
+                const Text('RANK LADDER', style: TextStyle(fontWeight: FontWeight.w900)),
+                const SizedBox(height: 8),
+                for (final band in WorkoutEngine.rankBands.reversed)
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: Icon(
+                      profile.currentRank == band.label ? Icons.radio_button_checked : Icons.radio_button_unchecked,
+                      color: profile.currentRank == band.label ? Theme.of(context).colorScheme.primary : null,
+                    ),
+                    title: Text(band.label, style: TextStyle(fontWeight: profile.currentRank == band.label ? FontWeight.w900 : FontWeight.w600)),
+                    trailing: Text('${band.minimumRp} RP', style: const TextStyle(color: Colors.white60)),
+                  ),
+              ],
+            );
+          },
+        ),
+      );
+}

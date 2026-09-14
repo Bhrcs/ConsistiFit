@@ -1,5 +1,4 @@
 import 'package:health/health.dart';
-import 'supabase_service.dart';
 
 class HealthService {
   final Health _health = Health();
@@ -13,7 +12,6 @@ class HealthService {
   ];
 
   Future<void> configure() => _health.configure();
-
   Future<bool> requestReadAccess() => _health.requestAuthorization(readTypes);
 
   Future<List<HealthDataPoint>> today() async {
@@ -23,7 +21,7 @@ class HealthService {
     return _health.removeDuplicates(points);
   }
 
-  Future<HealthSyncSummary> syncToday(SupabaseService backend) async {
+  Future<HealthSyncSummary> syncToday() async {
     final now = DateTime.now();
     final start = DateTime(now.year, now.month, now.day);
     final points = await today();
@@ -38,15 +36,12 @@ class HealthService {
         sleepMinutes += point.dateTo.difference(point.dateFrom).inMinutes;
       }
     }
-    final source = points.isEmpty ? 'health' : points.first.sourcePlatform.name;
-    await backend.saveHealthSnapshot(
-      day: start,
-      steps: steps,
+    return HealthSyncSummary(
+      steps: steps ?? 0,
       activeCalories: calories,
       sleepMinutes: sleepMinutes,
-      source: source,
+      dataPoints: points.length,
     );
-    return HealthSyncSummary(steps: steps ?? 0, activeCalories: calories, sleepMinutes: sleepMinutes, dataPoints: points.length);
   }
 }
 

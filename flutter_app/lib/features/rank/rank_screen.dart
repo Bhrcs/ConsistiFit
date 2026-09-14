@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../models/models.dart';
-import '../../services/supabase_service.dart';
+import '../../services/local_state_service.dart';
 import '../../services/workout_engine.dart';
 
 class RankScreen extends StatelessWidget {
@@ -8,8 +8,8 @@ class RankScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => SafeArea(
-        child: FutureBuilder<ProfileSnapshot?>(
-          future: SupabaseService().profile(),
+        child: FutureBuilder<ProfileSnapshot>(
+          future: LocalStateService().profile(),
           builder: (context, snapshot) {
             final profile = snapshot.data ?? ProfileSnapshot.demo;
             final engine = const WorkoutEngine();
@@ -28,7 +28,7 @@ class RankScreen extends StatelessWidget {
                 const Card(
                   child: Padding(
                     padding: EdgeInsets.all(16),
-                    child: Text('Rank tracks current consistency. Account XP is permanent, while rank can move up or down from weekly adherence. Extra unscheduled workouts do not farm ranked rewards.'),
+                    child: Text('Rank is local prototype data for now. Account XP stays permanent, while rank can still move with consistency rules. Extra unscheduled workouts do not farm ranked rewards.'),
                   ),
                 ),
                 const SizedBox(height: 18),

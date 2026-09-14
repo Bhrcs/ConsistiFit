@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../models/models.dart';
+import '../../services/local_state_service.dart';
 import '../../services/program_generator.dart';
-import '../../services/supabase_service.dart';
 import '../../services/workout_engine.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -18,8 +18,8 @@ class HomeScreen extends StatelessWidget {
     ));
     final today = program.week[DateTime.now().weekday - 1];
     return SafeArea(
-      child: FutureBuilder<ProfileSnapshot?>(
-        future: SupabaseService().profile(),
+      child: FutureBuilder<ProfileSnapshot>(
+        future: LocalStateService().profile(),
         builder: (context, snapshot) {
           final profile = snapshot.data ?? ProfileSnapshot.demo;
           final nextRank = const WorkoutEngine().nextRank(profile.rankPoints);

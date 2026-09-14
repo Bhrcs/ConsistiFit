@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
-import 'core/config/env.dart';
 import 'core/theme/app_theme.dart';
-import 'features/auth/auth_screen.dart';
 import 'features/home/home_screen.dart';
 import 'features/missions/missions_screen.dart';
 import 'features/onboarding/onboarding_screen.dart';
@@ -19,7 +16,7 @@ import 'features/workouts/workout_screen.dart';
 final _router = GoRouter(
   initialLocation: '/',
   routes: [
-    GoRoute(path: '/', builder: (_, __) => const AuthGate()),
+    GoRoute(path: '/', builder: (_, __) => const ShellScreen()),
     GoRoute(path: '/workout', builder: (_, __) => const WorkoutScreen()),
     GoRoute(path: '/program', builder: (_, __) => const ProgramsScreen()),
     GoRoute(path: '/onboarding', builder: (_, __) => const OnboardingScreen()),
@@ -38,22 +35,6 @@ class ConsistiFitApp extends StatelessWidget {
         theme: AppTheme.dark,
         routerConfig: _router,
       );
-}
-
-class AuthGate extends StatelessWidget {
-  const AuthGate({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    if (!Env.hasSupabase) return const ShellScreen();
-    return StreamBuilder<AuthState>(
-      stream: Supabase.instance.client.auth.onAuthStateChange,
-      builder: (context, snapshot) =>
-          Supabase.instance.client.auth.currentSession == null
-              ? const AuthScreen()
-              : const ShellScreen(),
-    );
-  }
 }
 
 class ShellScreen extends StatefulWidget {
@@ -86,21 +67,11 @@ class _ShellScreenState extends State<ShellScreen> {
           selectedIndex: index,
           onDestinationSelected: (value) => setState(() => index = value),
           destinations: const [
-            NavigationDestination(
-              icon: Icon(Icons.home_outlined),
-              selectedIcon: Icon(Icons.home),
-              label: 'Home',
-            ),
+            NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'Home'),
             NavigationDestination(icon: Icon(Icons.checklist), label: 'Missions'),
-            NavigationDestination(
-              icon: Icon(Icons.emoji_events_outlined),
-              label: 'Rank',
-            ),
+            NavigationDestination(icon: Icon(Icons.emoji_events_outlined), label: 'Rank'),
             NavigationDestination(icon: Icon(Icons.insights), label: 'Progress'),
-            NavigationDestination(
-              icon: Icon(Icons.person_outline),
-              label: 'Profile',
-            ),
+            NavigationDestination(icon: Icon(Icons.person_outline), label: 'Profile'),
           ],
         ),
       );

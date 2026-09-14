@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../core/config/env.dart';
 import '../../models/models.dart';
 import '../../services/health_service.dart';
+import '../../services/local_state_service.dart';
 import '../../services/notification_service.dart';
-import '../../services/supabase_service.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -19,9 +17,14 @@ class ProfileScreen extends StatelessWidget {
         if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Health access was not granted.')));
         return;
       }
-      final summary = await health.syncToday(SupabaseService());
+      final summary = await health.syncToday();
+      await LocalStateService().saveHealthSnapshot(
+        steps: summary.steps,
+        activeCalories: summary.activeCalories,
+        sleepMinutes: summary.sleepMinutes,
+      );
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Health synced · ${summary.steps} steps · ${summary.activeCalories.toStringAsFixed(0)} active calories · ${summary.sleepMinutes} sleep minutes.')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Health saved locally · ${summary.steps} steps · ${summary.activeCalories.toStringAsFixed(0)} active calories · ${summary.sleepMinutes} sleep minutes.')));
       }
     } catch (error) {
       if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Health setup needs a supported iPhone/Android device: $error')));
@@ -40,16 +43,18 @@ class ProfileScreen extends StatelessWidget {
     }
   }
 
-  Future<void> _signOut(BuildContext context) async {
-    if (!Env.hasSupabase) return;
-    await Supabase.instance.client.auth.signOut();
-    if (context.mounted) context.go('/');
+  Future<void> _reset(BuildContext context) async {
+    await LocalStateService().resetDemo();
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Local demo data reset.')));
+      context.go('/');
+    }
   }
 
   @override
   Widget build(BuildContext context) => SafeArea(
-        child: FutureBuilder<ProfileSnapshot?>(
-          future: SupabaseService().profile(),
+        child: FutureBuilder<ProfileSnapshot>(
+          future: LocalStateService().profile(),
           builder: (context, snapshot) {
             final profile = snapshot.data ?? ProfileSnapshot.demo;
             return ListView(
@@ -69,27 +74,15 @@ class ProfileScreen extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 24),
+                const Card(child: Padding(padding: EdgeInsets.all(16), child: Text('This build is local-first. Workout history, rewards, missions, rank and health summaries stay on this device until a backend is added later.'))),
                 ListTile(title: const Text('Training program'), subtitle: const Text('Schedule, exercises and deloads'), trailing: const Icon(Icons.chevron_right), onTap: () => context.push('/program')),
-                ListTile(title: const Text('Friends & squads'), subtitle: const Text('Friends, challenges and team goals'), trailing: const Icon(Icons.chevron_right), onTap: () => context.push('/social')),
-                ListTile(title: const Text('Rewards shop'), subtitle: const Text('Cosmetics and non-RP rewards'), trailing: const Icon(Icons.chevron_right), onTap: () => context.push('/shop')),
+                ListTile(title: const Text('Friends & squads'), subtitle: const Text('Local feature preview for now'), trailing: const Icon(Icons.chevron_right), onTap: () => context.push('/social')),
+                ListTile(title: const Text('Rewards shop'), subtitle: const Text('Local cosmetics and utilities'), trailing: const Icon(Icons.chevron_right), onTap: () => context.push('/shop')),
                 ListTile(title: const Text('Rebuild program'), subtitle: const Text('Goal, equipment, days and session length'), trailing: const Icon(Icons.chevron_right), onTap: () => context.push('/onboarding')),
                 const Divider(height: 30),
-                ListTile(
-                  leading: const Icon(Icons.favorite_outline),
-                  title: const Text('Connect & sync health data'),
-                  subtitle: const Text('Apple Health / Health Connect daily summary'),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () => _connectHealth(context),
-                ),
-                ListTile(
-                  leading: const Icon(Icons.notifications_none),
-                  title: const Text('Enable workout reminders'),
-                  subtitle: const Text('Request permission and send a test reminder'),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () => _enableNotifications(context),
-                ),
-                if (Env.hasSupabase)
-                  ListTile(leading: const Icon(Icons.logout), title: const Text('Sign out'), onTap: () => _signOut(context)),
+                ListTile(leading: const Icon(Icons.favorite_outline), title: const Text('Read health data'), subtitle: const Text('Apple Health / Health Connect daily summary saved locally'), trailing: const Icon(Icons.chevron_right), onTap: () => _connectHealth(context)),
+                ListTile(leading: const Icon(Icons.notifications_none), title: const Text('Enable workout reminders'), subtitle: const Text('Request permission and send a test reminder'), trailing: const Icon(Icons.chevron_right), onTap: () => _enableNotifications(context)),
+                ListTile(leading: const Icon(Icons.restart_alt), title: const Text('Reset local demo data'), onTap: () => _reset(context)),
               ],
             );
           },

@@ -3,6 +3,20 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/models.dart';
 import 'workout_engine.dart';
 
+class HealthSnapshot {
+  const HealthSnapshot({
+    required this.steps,
+    required this.activeCalories,
+    required this.sleepMinutes,
+    required this.savedAt,
+  });
+
+  final int steps;
+  final double activeCalories;
+  final int sleepMinutes;
+  final DateTime? savedAt;
+}
+
 class LocalStateService {
   final SharedPreferencesAsync _prefs = SharedPreferencesAsync();
   static const WorkoutEngine _engine = WorkoutEngine();
@@ -88,6 +102,56 @@ class LocalStateService {
     return _applyReward(reward);
   }
 
+  Future<bool> healthConnected() async => await _prefs.getBool('health_connected') ?? false;
+
+  Future<void> setHealthConnected(bool connected) => _prefs.setBool('health_connected', connected);
+
+  Future<void> saveHealthSnapshot({required int steps, required double activeCalories, required int sleepMinutes}) async {
+    await _prefs.setString(
+      'health_${_todayKey()}',
+      jsonEncode(<String, dynamic>{
+        'steps': steps,
+        'activeCalories': activeCalories,
+        'sleepMinutes': sleepMinutes,
+        'savedAt': DateTime.now().toIso8601String(),
+      }),
+    );
+  }
+
+  Future<HealthSnapshot> healthSnapshotToday() async {
+    final raw = await _prefs.getString('health_${_todayKey()}');
+    if (raw == null) {
+      return const HealthSnapshot(steps: 0, activeCalories: 0, sleepMinutes: 0, savedAt: null);
+    }
+    final data = jsonDecode(raw) as Map<String, dynamic>;
+    return HealthSnapshot(
+      steps: (data['steps'] as num?)?.toInt() ?? 0,
+      activeCalories: (data['activeCalories'] as num?)?.toDouble() ?? 0,
+      sleepMinutes: (data['sleepMinutes'] as num?)?.toInt() ?? 0,
+      savedAt: DateTime.tryParse(data['savedAt'] as String? ?? ''),
+    );
+  }
+
+  Future<RewardResult?> applyHealthProgress({
+    required int steps,
+    required double activeCalories,
+    required int sleepMinutes,
+  }) async {
+    await saveHealthSnapshot(steps: steps, activeCalories: activeCalories, sleepMinutes: sleepMinutes);
+    if (steps >= 8000) return completeDailyMission('steps');
+    return null;
+  }
+
+  Future<int> mobilitySecondsToday() async => await _prefs.getInt('mobility_seconds_${_todayKey()}') ?? 0;
+
+  Future<RewardResult?> addMobilitySeconds(int seconds) async {
+    if (seconds <= 0) return null;
+    final total = (await mobilitySecondsToday()) + seconds;
+    await _prefs.setInt('mobility_seconds_${_todayKey()}', total);
+    if (total >= 600) return completeDailyMission('mobility');
+    return null;
+  }
+
   Future<RewardResult> recordWorkout({
     required String workoutName,
     required List<LoggedSet> sets,
@@ -136,20 +200,11 @@ class LocalStateService {
     return updated.coins;
   }
 
-  Future<void> saveHealthSnapshot({required int steps, required double activeCalories, required int sleepMinutes}) => _prefs.setString(
-        'health_${_todayKey()}',
-        jsonEncode(<String, dynamic>{
-          'steps': steps,
-          'activeCalories': activeCalories,
-          'sleepMinutes': sleepMinutes,
-          'savedAt': DateTime.now().toIso8601String(),
-        }),
-      );
-
   Future<void> resetDemo() async {
     for (final key in <String>[
       'profile_name', 'profile_xp', 'profile_level', 'profile_coins', 'profile_rp', 'profile_rank',
       'profile_streak', 'profile_longest_streak', 'profile_consistency', 'workout_count', 'last_workout', 'inventory',
+      'health_${_todayKey()}', 'mobility_seconds_${_todayKey()}', 'missions_${_todayKey()}',
     ]) {
       await _prefs.remove(key);
     }

@@ -1,7 +1,7 @@
 # Health and Notifications
 
 ## Health
-The Flutter app scaffolds Apple HealthKit and Android Health Connect reads for steps, active energy, heart rate, workouts and sleep. Health is opt-in and is never required for core workout logging. Native entitlements/permissions must be configured before device builds.
+The Flutter app reads Apple HealthKit and Android Health Connect data for steps, active energy, heart rate, workouts and sleep. Health is opt-in and is never required for core workout logging. The current build stores the daily summary locally on the device.
 
 ## Notifications
-Start with local workout and mission reminders. Quiet hours live in `notification_preferences`. Remote push can be added after APNs/FCM credentials are provisioned. Recovery-day reminders should explicitly count recovery as progress rather than using guilt-based streak language.
+Start with local workout and mission reminders. Quiet-hour preferences can also remain local until remote push is added later. Recovery-day reminders should explicitly count recovery as progress rather than using guilt-based streak language.

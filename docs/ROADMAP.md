@@ -3,19 +3,24 @@
 ## Implemented foundation
 - PWA manifest, service worker, offline fallback, icons and GitHub Pages workflow
 - Functional investor prototype
-- Flutter production project structure
+- Flutter mobile project structure
 - Program generator and workout engine rules
-- Supabase schema, authentication profile trigger, RLS and server-authoritative workout rewards
-- Starter exercise database
+- Local profile/progression storage
+- Local missions, workout rewards and Coin shop
 - Health integration service scaffold
 - Notification service scaffold
-- Friends, squads, challenges and activity-feed foundation
+- Local friends/squads/challenges preview
+- Android APK and iOS simulator smoke builds in CI
 
-## External setup still required
-- Create a Supabase project and apply the migrations
-- Provide `SUPABASE_URL` and `SUPABASE_ANON_KEY` via Dart defines
-- Enable Apple/Google auth providers if desired
-- Configure iOS HealthKit entitlements and Android Health Connect permissions
-- Configure notification entitlements and a push provider for remote push
-- Set GitHub Pages Source to GitHub Actions once in repository settings
-- Build/sign iOS in Xcode and Android with Flutter tooling
+## Deferred until needed
+- User accounts and authentication
+- Cloud sync across devices
+- Server-authoritative RP/XP/Coins/rank validation
+- Networked friends, squads, challenges and activity feed
+- Remote push notifications
+
+## Release setup still required
+- Physical-device Health permission testing
+- Apple Developer signing/team selection
+- Android release signing
+- App Store / Play Store packaging and metadata

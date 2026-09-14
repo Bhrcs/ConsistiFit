@@ -68,17 +68,6 @@ def configure_ios() -> None:
 	<string>ConsistiFit reads activity and workout data you choose to share to show consistency insights.</string>
 	<key>NSHealthUpdateUsageDescription</key>
 	<string>ConsistiFit may save workouts you choose to share with Apple Health.</string>
-	<key>CFBundleURLTypes</key>
-	<array>
-		<dict>
-			<key>CFBundleURLName</key>
-			<string>com.consistifit.consistifit</string>
-			<key>CFBundleURLSchemes</key>
-			<array>
-				<string>consistifit</string>
-			</array>
-		</dict>
-	</array>
 '''
         if 'NSHealthShareUsageDescription' not in text:
             text = text.replace('</dict>', extra + '</dict>', 1)
@@ -111,7 +100,7 @@ def configure_ios() -> None:
 def main() -> None:
     configure_android()
     configure_ios()
-    print('ConsistiFit native Health, notification, and deep-link configuration applied.')
+    print('ConsistiFit native Health and notification configuration applied.')
 
 
 if __name__ == '__main__':

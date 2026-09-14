@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>ConsistiFit</title>
+<style>html,body{margin:0;background:#050606;color:#fff;font-family:system-ui,sans-serif}#loading{min-height:100vh;display:grid;place-items:center;text-align:center;padding:24px}#loading b{display:block;font-size:28px;margin-bottom:8px;color:#d7ff3f}#loading span{color:#8d9390;font-size:13px}</style>
+</head>
+<body>
+<div id="loading"><div><b>ConsistiFit</b><span>Loading prototype…</span></div></div>
+<script>
+(async()=>{
+  try{
+    const files=['parts/part1.txt','parts/part2.txt','parts/part3.txt','parts/part4.txt','parts/part5.txt','parts/part6.txt','parts/part7.txt'];
+    const responses=await Promise.all(files.map(f=>fetch(f,{cache:'no-store'})));
+    if(responses.some(r=>!r.ok)) throw new Error('Could not load prototype files');
+    const chunks=await Promise.all(responses.map(r=>r.text()));
+    document.open();document.write(chunks.join(''));document.close();
+  }catch(e){document.getElementById('loading').innerHTML='<div><b>ConsistiFit</b><span>Prototype failed to load. Refresh the page.</span></div>';console.error(e);}
+})();
+</script>
+</body>
+</html>

@@ -1,42 +1,22 @@
 .cf-workout-nav{
-  padding:14px 18px 8px;
+  padding:13px 18px 10px;
   border-bottom:1px solid rgba(255,255,255,.07);
-  background:linear-gradient(180deg,rgba(255,255,255,.02),transparent);
+  background:linear-gradient(180deg,rgba(255,255,255,.018),transparent);
 }
 .cf-workout-nav-main{
   display:grid;
-  grid-template-columns:44px minmax(0,1fr) 44px;
+  grid-template-columns:minmax(0,1fr) auto;
   align-items:center;
-  gap:12px;
+  gap:16px;
   max-width:620px;
   margin:0 auto;
 }
-.cf-nav-arrow{
-  width:44px;
-  height:44px;
-  border-radius:14px;
-  border:1px solid rgba(255,255,255,.11);
-  background:#121414;
-  color:#f5f7ee;
-  font-size:27px;
-  line-height:1;
-  display:grid;
-  place-items:center;
-  cursor:pointer;
-  transition:transform .16s ease,border-color .16s ease,background .16s ease,opacity .16s ease;
-}
-.cf-nav-arrow:not(:disabled):hover{
-  border-color:rgba(215,255,63,.4);
-  background:#171a16;
-}
-.cf-nav-arrow:not(:disabled):active{transform:scale(.96)}
-.cf-nav-arrow:disabled{opacity:.24;cursor:default}
-.cf-nav-progress{text-align:center;min-width:0}
+.cf-nav-progress{min-width:0}
 .cf-nav-kicker{
   color:rgba(255,255,255,.42);
-  font-size:10px;
+  font-size:9px;
   font-weight:900;
-  letter-spacing:1.25px;
+  letter-spacing:1.2px;
 }
 .cf-nav-count{
   margin-top:2px;
@@ -48,7 +28,6 @@
 .cf-nav-count span{color:rgba(255,255,255,.45)}
 .cf-nav-dots{
   display:flex;
-  justify-content:center;
   align-items:center;
   gap:5px;
   margin-top:8px;
@@ -63,24 +42,63 @@
 .cf-nav-dots i.done{background:rgba(215,255,63,.36)}
 .cf-nav-dots i.active{width:22px;background:#d7ff3f}
 .cf-workout-list-button{
-  width:max-content;
-  max-width:100%;
-  margin:11px auto 0;
+  min-height:38px;
   padding:8px 11px 8px 13px;
   display:flex;
   align-items:center;
   gap:9px;
-  border:0;
-  border-radius:10px;
-  background:transparent;
-  color:rgba(255,255,255,.58);
-  font-size:12px;
+  border:1px solid rgba(255,255,255,.09);
+  border-radius:11px;
+  background:#121414;
+  color:rgba(255,255,255,.66);
+  font-size:11px;
   font-weight:800;
   cursor:pointer;
 }
-.cf-workout-list-button:hover{color:#d7ff3f;background:rgba(215,255,63,.06)}
+.cf-workout-list-button:hover{color:#d7ff3f;border-color:rgba(215,255,63,.25)}
 .cf-list-icon{font-size:13px;letter-spacing:-2px}
 .cf-body-count-hidden{display:none!important}
+.cf-exercise-switcher{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  margin:24px 0 8px;
+}
+.cf-switch-button{
+  min-width:0;
+  min-height:68px;
+  padding:12px 14px;
+  border:1px solid rgba(255,255,255,.1);
+  border-radius:14px;
+  background:#111313;
+  color:#f4f6ed;
+  text-align:left;
+  cursor:pointer;
+  transition:border-color .16s ease,background .16s ease,transform .16s ease,opacity .16s ease;
+}
+.cf-switch-button:not(:disabled):hover{
+  border-color:rgba(215,255,63,.34);
+  background:#151815;
+}
+.cf-switch-button:not(:disabled):active{transform:scale(.985)}
+.cf-switch-button:disabled{opacity:.28;cursor:default}
+.cf-switch-next{text-align:right}
+.cf-switch-direction{
+  display:block;
+  color:#d7ff3f;
+  font-size:10px;
+  font-weight:900;
+  letter-spacing:.45px;
+  text-transform:uppercase;
+}
+.cf-switch-button b{
+  display:block;
+  margin-top:5px;
+  overflow:hidden;
+  white-space:nowrap;
+  text-overflow:ellipsis;
+  font-size:12px;
+}
 .cf-workout-list{margin-top:18px;display:grid;gap:8px}
 .cf-workout-list-row{
   display:grid;
@@ -134,13 +152,21 @@
 }
 .cf-list-guide:hover{background:rgba(215,255,63,.07)}
 @media(max-width:560px){
-  .cf-workout-nav{padding:12px 14px 7px}
-  .cf-workout-nav-main{grid-template-columns:40px minmax(0,1fr) 40px;gap:9px}
-  .cf-nav-arrow{width:40px;height:40px;border-radius:12px;font-size:24px}
-  .cf-nav-kicker{font-size:9px}
+  .cf-workout-nav{padding:11px 14px 9px}
+  .cf-workout-nav-main{gap:10px}
+  .cf-nav-kicker{font-size:8px}
   .cf-nav-count{font-size:13px}
   .cf-nav-count strong{font-size:16px}
-  .cf-workout-list-button{margin-top:8px}
+  .cf-workout-list-button{padding:7px 9px;font-size:10px}
+  .cf-switch-button{min-height:62px;padding:10px 11px}
+  .cf-switch-direction{font-size:9px}
+  .cf-switch-button b{font-size:11px}
   .cf-current-label{display:none}
   .cf-workout-list-select{grid-template-columns:29px minmax(0,1fr)}
+}
+@media(max-width:370px){
+  .cf-workout-list-button span:first-child{display:none}
+  .cf-workout-list-button{width:38px;justify-content:center;padding:7px}
+  .cf-switch-button b{display:none}
+  .cf-switch-button{min-height:48px}
 }

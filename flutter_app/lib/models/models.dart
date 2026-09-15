@@ -1,6 +1,28 @@
 enum ExperienceLevel { beginner, intermediate, advanced }
 enum TrainingGoal { muscle, strength, cardio, habit }
-enum EquipmentLevel { bodyweight, dumbbells, fullGym }
+enum TrainingEnvironment { homeFreeWeights, gymMachines, custom }
+enum EquipmentType {
+  bodyweight,
+  dumbbells,
+  bench,
+  barbell,
+  squatRack,
+  kettlebell,
+  resistanceBands,
+  pullUpBar,
+  cableMachine,
+  legPress,
+  legExtension,
+  legCurl,
+  chestPressMachine,
+  shoulderPressMachine,
+  seatedRowMachine,
+  latPulldownMachine,
+  pecDeck,
+  hipAbductionMachine,
+  calfRaiseMachine,
+  cardioMachine,
+}
 enum SessionDifficulty { tooEasy, good, hard, tooHard }
 enum ConsistencyRank { iron, bronze, silver, gold, platinum, diamond, master, grandmaster }
 enum WorkoutKind { strength, cardio, recovery }
@@ -10,16 +32,87 @@ class ProgramPreferences {
   const ProgramPreferences({
     required this.goal,
     required this.experience,
-    required this.equipment,
+    required this.environment,
     required this.daysPerWeek,
     required this.sessionMinutes,
+    this.customEquipment = const <EquipmentType>{},
   });
 
   final TrainingGoal goal;
   final ExperienceLevel experience;
-  final EquipmentLevel equipment;
+  final TrainingEnvironment environment;
   final int daysPerWeek;
   final int sessionMinutes;
+  final Set<EquipmentType> customEquipment;
+
+  static const homeDefault = ProgramPreferences(
+    goal: TrainingGoal.muscle,
+    experience: ExperienceLevel.beginner,
+    environment: TrainingEnvironment.homeFreeWeights,
+    daysPerWeek: 3,
+    sessionMinutes: 45,
+  );
+
+  Set<EquipmentType> get availableEquipment => switch (environment) {
+        TrainingEnvironment.homeFreeWeights => const <EquipmentType>{
+            EquipmentType.bodyweight,
+            EquipmentType.dumbbells,
+            EquipmentType.bench,
+          },
+        TrainingEnvironment.gymMachines => const <EquipmentType>{
+            EquipmentType.bodyweight,
+            EquipmentType.cableMachine,
+            EquipmentType.legPress,
+            EquipmentType.legExtension,
+            EquipmentType.legCurl,
+            EquipmentType.chestPressMachine,
+            EquipmentType.shoulderPressMachine,
+            EquipmentType.seatedRowMachine,
+            EquipmentType.latPulldownMachine,
+            EquipmentType.pecDeck,
+            EquipmentType.hipAbductionMachine,
+            EquipmentType.calfRaiseMachine,
+            EquipmentType.cardioMachine,
+          },
+        TrainingEnvironment.custom => <EquipmentType>{
+            EquipmentType.bodyweight,
+            ...customEquipment,
+          },
+      };
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+        'goal': goal.name,
+        'experience': experience.name,
+        'environment': environment.name,
+        'daysPerWeek': daysPerWeek,
+        'sessionMinutes': sessionMinutes,
+        'customEquipment': customEquipment.map((item) => item.name).toList(growable: false),
+      };
+
+  factory ProgramPreferences.fromJson(Map<String, dynamic> json) {
+    T enumValue<T extends Enum>(List<T> values, String? name, T fallback) {
+      for (final value in values) {
+        if (value.name == name) return value;
+      }
+      return fallback;
+    }
+
+    final equipmentNames = (json['customEquipment'] as List<dynamic>? ?? const <dynamic>[])
+        .whereType<String>()
+        .toSet();
+    return ProgramPreferences(
+      goal: enumValue(TrainingGoal.values, json['goal'] as String?, TrainingGoal.muscle),
+      experience: enumValue(ExperienceLevel.values, json['experience'] as String?, ExperienceLevel.beginner),
+      environment: enumValue(
+        TrainingEnvironment.values,
+        json['environment'] as String?,
+        TrainingEnvironment.homeFreeWeights,
+      ),
+      daysPerWeek: (json['daysPerWeek'] as num? ?? 3).toInt().clamp(2, 6),
+      sessionMinutes: (json['sessionMinutes'] as num? ?? 45).toInt().clamp(30, 75),
+      customEquipment: EquipmentType.values.where((item) => equipmentNames.contains(item.name)).toSet(),
+    );
+  }
 }
 
 class ExercisePrescription {
@@ -96,6 +189,8 @@ class GeneratedProgram {
     required this.weeks,
     required this.workouts,
     required this.week,
+    required this.environmentLabel,
+    required this.equipmentLabel,
     this.deloadWeeks = const <int>[8],
   });
 
@@ -104,6 +199,8 @@ class GeneratedProgram {
   final int weeks;
   final List<WorkoutTemplate> workouts;
   final List<ProgramDay> week;
+  final String environmentLabel;
+  final String equipmentLabel;
   final List<int> deloadWeeks;
 }
 

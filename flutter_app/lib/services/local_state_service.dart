@@ -35,6 +35,19 @@ class LocalStateService {
     <String, dynamic>{'code': 'dark_theme', 'name': 'Obsidian Theme', 'description': 'Prototype cosmetic theme unlock.', 'coin_price': 500},
   ];
 
+  Future<ProgramPreferences> programPreferences() async {
+    final raw = await _prefs.getString('program_preferences');
+    if (raw == null) return ProgramPreferences.homeDefault;
+    try {
+      return ProgramPreferences.fromJson(jsonDecode(raw) as Map<String, dynamic>);
+    } catch (_) {
+      return ProgramPreferences.homeDefault;
+    }
+  }
+
+  Future<void> saveProgramPreferences(ProgramPreferences preferences) =>
+      _prefs.setString('program_preferences', jsonEncode(preferences.toJson()));
+
   Future<ProfileSnapshot> profile() async {
     final demo = ProfileSnapshot.demo;
     return ProfileSnapshot(
@@ -202,6 +215,7 @@ class LocalStateService {
 
   Future<void> resetDemo() async {
     for (final key in <String>[
+      'program_preferences',
       'profile_name', 'profile_xp', 'profile_level', 'profile_coins', 'profile_rp', 'profile_rank',
       'profile_streak', 'profile_longest_streak', 'profile_consistency', 'workout_count', 'last_workout', 'inventory',
       'health_${_todayKey()}', 'mobility_seconds_${_todayKey()}', 'missions_${_todayKey()}',

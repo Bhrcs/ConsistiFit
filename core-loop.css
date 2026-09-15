@@ -1,0 +1,64 @@
+:root{
+  --cf-core-radius:18px;
+  --cf-core-gap:14px;
+}
+html,body{max-width:100%;overflow-x:hidden}
+button,input,textarea{font:inherit}
+button{touch-action:manipulation}
+.primary,.ghost,.danger{min-height:44px}
+.primary.small,.ghost.small,.danger.small{min-height:38px}
+.card,.rank-hero,.quest{border-radius:var(--cf-core-radius)}
+.screen{padding-bottom:calc(96px + env(safe-area-inset-bottom))}
+.sheet{padding-bottom:max(26px,calc(18px + env(safe-area-inset-bottom)))}
+.bottomnav{padding-bottom:max(8px,env(safe-area-inset-bottom))}
+.cf-core-focus{margin:16px 0;padding:16px 17px;border:1px solid rgba(215,255,63,.2);border-radius:18px;background:linear-gradient(145deg,rgba(215,255,63,.07),rgba(255,255,255,.025))}
+.cf-core-focus small,.cf-core-focus b,.cf-core-focus span{display:block}
+.cf-core-focus small{color:#d7ff3f;font-size:9px;font-weight:900;letter-spacing:1.1px}
+.cf-core-focus b{margin-top:6px;font-size:14px;line-height:1.35}
+.cf-core-focus span{margin-top:6px;color:rgba(255,255,255,.52);font-size:11px;line-height:1.45}
+.cf-core-primary{display:inline-block;margin-top:6px;padding:4px 7px;border-radius:999px;background:rgba(215,255,63,.1);color:#d7ff3f;font-size:8px;font-weight:900;letter-spacing:.8px}
+.cf-core-planfit{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:12px}
+.cf-core-planfit>b,.cf-core-planfit .sub{display:block}
+.cf-core-planfit .sub{margin-top:5px;line-height:1.45}
+.cf-core-rank-note{margin-top:10px}
+.cf-core-rank-note .sub{margin-top:6px;line-height:1.45}
+.cf-core-smart{align-items:flex-start}
+.cf-core-smart p{max-width:560px}
+.cf-core-recovery-note{display:flex;gap:8px;flex-direction:column;margin:-8px 0 18px;padding:12px 14px;border-left:3px solid #d7ff3f;background:rgba(215,255,63,.05);border-radius:0 12px 12px 0}
+.cf-core-recovery-note b{font-size:12px}
+.cf-core-recovery-note span{color:rgba(255,255,255,.5);font-size:11px;line-height:1.4}
+.cf-core-program-quality{margin:16px 0;padding:14px 15px;border-radius:15px;border:1px solid rgba(255,255,255,.09);background:#101212}
+.cf-core-program-quality.good{border-color:rgba(215,255,63,.22);background:rgba(215,255,63,.05)}
+.cf-core-program-quality.review{border-color:rgba(255,190,92,.22)}
+.cf-core-program-quality small,.cf-core-program-quality b,.cf-core-program-quality span{display:block}
+.cf-core-program-quality small{color:#d7ff3f;font-size:8px;font-weight:900;letter-spacing:1px}
+.cf-core-program-quality b{margin-top:5px;font-size:13px}
+.cf-core-program-quality span{margin-top:5px;color:rgba(255,255,255,.48);font-size:10px;line-height:1.4}
+#screen-missions .quest{padding-top:15px;padding-bottom:15px}
+#screen-missions .quest h3{line-height:1.25}
+#screen-profile .sheet-option,#screen-profile button.sheet-option{min-height:58px}
+.workout-body{max-width:860px;margin:0 auto}
+.workout-body .section-title{margin-top:24px}
+.set-grid input{min-width:0}
+.cf-exercise-switcher{margin-top:22px}
+.finishbar{padding-bottom:max(14px,env(safe-area-inset-bottom))}
+@media(max-width:620px){
+  .screen{padding-left:14px;padding-right:14px}
+  .topbar{padding-left:14px;padding-right:14px}
+  .hero-copy{padding:18px}
+  .cf-core-planfit{align-items:flex-start;flex-direction:column}
+  .cf-core-planfit button{width:100%}
+  .cf-core-smart{gap:10px}
+  .cf-core-smart button{min-width:64px}
+  .sheet{border-radius:22px 22px 0 0}
+  .workout-body{padding-left:14px;padding-right:14px}
+  .set-grid{gap:7px}
+  .set-grid input{padding-left:8px;padding-right:8px}
+}
+@media(max-width:390px){
+  .headline{font-size:clamp(30px,10vw,42px)}
+  .stat-grid{gap:7px}
+  .stat{padding:12px 7px}
+  .cf-core-focus{padding:14px}
+  .workout-head .badge{font-size:9px}
+}

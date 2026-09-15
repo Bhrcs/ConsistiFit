@@ -32,6 +32,7 @@ assert(sw.includes('./styles.css'));
 assert(sw.includes('./plan-builder.css'));
 assert(sw.includes('./exercise-guides.css'));
 assert(sw.includes('./workout-nav.css'));
+assert(sw.includes('consistifit-playable-v6'));
 assert(css.includes('.bottomnav'));
 assert(planCss.includes('.plan-mode-grid'));
 assert(planCss.includes('.equipment-grid'));
@@ -40,6 +41,8 @@ assert(guideCss.includes('.cf-demo-grid'));
 assert(workoutNavCss.includes('.cf-workout-nav-main'));
 assert(workoutNavCss.includes('.cf-nav-dots'));
 assert(workoutNavCss.includes('.cf-workout-list-row'));
+assert(workoutNavCss.includes('.cf-exercise-switcher'));
+assert(workoutNavCss.includes('.cf-switch-button'));
 
 // Syntax check without executing browser globals.
 new Function(app);
@@ -85,12 +88,17 @@ for (const required of [
 for (const required of [
   'cfMoveExercise',
   'cfOpenWorkoutNavigatorList',
-  'WORKOUT ORDER',
+  'renderTopProgress',
+  'renderBottomExerciseControls',
+  'WORKOUT PROGRESS',
   'Workout list',
   'cf-nav-dots',
   'Previous exercise',
-  'Next exercise'
+  'Next exercise',
+  'cf-exercise-switcher'
 ]) assert(workoutNav.includes(required), `missing workout nav feature ${required}`);
+
+assert(!workoutNav.includes('cf-nav-arrow'), 'top navigation arrows should not exist');
 
 const combined = `${html}\n${app}\n${plans}\n${guides}\n${workoutNav}`;
 assert(!combined.toLowerCase().includes('supabase'));
@@ -100,4 +108,4 @@ const buttons = [...combined.matchAll(/<button\b([^>]*)>/gi)];
 const inactive = buttons.filter(m => !m[1].includes('onclick=') && !m[1].includes('disabled'));
 assert.equal(inactive.length, 0, `buttons without actions: ${inactive.length}`);
 
-console.log(`Playable PWA smoke test passed: ${buttons.length} button templates, persistent progression, plan generation, exercise guides, and compact workout navigation enabled.`);
+console.log(`Playable PWA smoke test passed: ${buttons.length} button templates, persistent progression, plan generation, exercise guides, and lower workout navigation enabled.`);

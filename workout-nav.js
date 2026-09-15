@@ -44,35 +44,28 @@
     `);
   };
 
-  function renderCompactNavigator() {
-    const workout = workoutState();
-    if (!workout || !workout.exercises.length) return;
-
+  function renderTopProgress(workout) {
     const navigator = document.querySelector('#workoutContent .exercise-tabs');
     if (!navigator) return;
 
     const index = workout.exerciseIndex;
     const total = workout.exercises.length;
-    const previousDisabled = index === 0;
-    const nextDisabled = index === total - 1;
 
     navigator.className = 'cf-workout-nav';
     navigator.innerHTML = `
       <div class="cf-workout-nav-main">
-        <button class="cf-nav-arrow" onclick="cfMoveExercise(-1)" ${previousDisabled ? 'disabled' : ''} aria-label="Previous exercise">‹</button>
         <div class="cf-nav-progress">
-          <div class="cf-nav-kicker">WORKOUT ORDER</div>
-          <div class="cf-nav-count">Exercise <strong>${index + 1}</strong><span> / ${total}</span></div>
+          <div class="cf-nav-kicker">WORKOUT PROGRESS</div>
+          <div class="cf-nav-count">Exercise <strong>${index + 1}</strong><span> of ${total}</span></div>
           <div class="cf-nav-dots" aria-hidden="true">
             ${workout.exercises.map((_, dotIndex) => `<i class="${dotIndex === index ? 'active' : dotIndex < index ? 'done' : ''}"></i>`).join('')}
           </div>
         </div>
-        <button class="cf-nav-arrow" onclick="cfMoveExercise(1)" ${nextDisabled ? 'disabled' : ''} aria-label="Next exercise">›</button>
+        <button class="cf-workout-list-button" onclick="cfOpenWorkoutNavigatorList()">
+          <span>Workout list</span>
+          <span class="cf-list-icon">☰</span>
+        </button>
       </div>
-      <button class="cf-workout-list-button" onclick="cfOpenWorkoutNavigatorList()">
-        <span>Workout list</span>
-        <span class="cf-list-icon">☰</span>
-      </button>
     `;
 
     const bodyCount = [...document.querySelectorAll('#workoutContent .workout-body > .eyebrow')]
@@ -80,8 +73,38 @@
     if (bodyCount) bodyCount.classList.add('cf-body-count-hidden');
   }
 
-  window.renderWorkout = function renderWorkoutWithCompactNavigation() {
+  function renderBottomExerciseControls(workout) {
+    const body = document.querySelector('#workoutContent .workout-body');
+    if (!body) return;
+
+    const oldControls = body.querySelector('.cf-exercise-switcher');
+    if (oldControls) oldControls.remove();
+
+    const index = workout.exerciseIndex;
+    const total = workout.exercises.length;
+    const previous = index > 0 ? workout.exercises[index - 1] : null;
+    const next = index < total - 1 ? workout.exercises[index + 1] : null;
+    const controls = document.createElement('div');
+    controls.className = 'cf-exercise-switcher';
+    controls.setAttribute('aria-label', 'Exercise navigation');
+    controls.innerHTML = `
+      <button class="cf-switch-button cf-switch-previous" onclick="cfMoveExercise(-1)" ${previous ? '' : 'disabled'}>
+        <span class="cf-switch-direction">‹ Previous exercise</span>
+        <b>${previous ? `${index}. ${escapeHtml(previous.name)}` : 'Start of workout'}</b>
+      </button>
+      <button class="cf-switch-button cf-switch-next" onclick="cfMoveExercise(1)" ${next ? '' : 'disabled'}>
+        <span class="cf-switch-direction">Next exercise ›</span>
+        <b>${next ? `${index + 2}. ${escapeHtml(next.name)}` : 'Workout complete'}</b>
+      </button>
+    `;
+    body.appendChild(controls);
+  }
+
+  window.renderWorkout = function renderWorkoutWithCleanNavigation() {
     previousRenderWorkout();
-    renderCompactNavigator();
+    const workout = workoutState();
+    if (!workout || !workout.exercises.length) return;
+    renderTopProgress(workout);
+    renderBottomExerciseControls(workout);
   };
 })();

@@ -1,0 +1,146 @@
+.cf-workout-nav{
+  padding:14px 18px 8px;
+  border-bottom:1px solid rgba(255,255,255,.07);
+  background:linear-gradient(180deg,rgba(255,255,255,.02),transparent);
+}
+.cf-workout-nav-main{
+  display:grid;
+  grid-template-columns:44px minmax(0,1fr) 44px;
+  align-items:center;
+  gap:12px;
+  max-width:620px;
+  margin:0 auto;
+}
+.cf-nav-arrow{
+  width:44px;
+  height:44px;
+  border-radius:14px;
+  border:1px solid rgba(255,255,255,.11);
+  background:#121414;
+  color:#f5f7ee;
+  font-size:27px;
+  line-height:1;
+  display:grid;
+  place-items:center;
+  cursor:pointer;
+  transition:transform .16s ease,border-color .16s ease,background .16s ease,opacity .16s ease;
+}
+.cf-nav-arrow:not(:disabled):hover{
+  border-color:rgba(215,255,63,.4);
+  background:#171a16;
+}
+.cf-nav-arrow:not(:disabled):active{transform:scale(.96)}
+.cf-nav-arrow:disabled{opacity:.24;cursor:default}
+.cf-nav-progress{text-align:center;min-width:0}
+.cf-nav-kicker{
+  color:rgba(255,255,255,.42);
+  font-size:10px;
+  font-weight:900;
+  letter-spacing:1.25px;
+}
+.cf-nav-count{
+  margin-top:2px;
+  color:#f4f6ed;
+  font-size:14px;
+  font-weight:700;
+}
+.cf-nav-count strong{color:#d7ff3f;font-size:17px}
+.cf-nav-count span{color:rgba(255,255,255,.45)}
+.cf-nav-dots{
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  gap:5px;
+  margin-top:8px;
+}
+.cf-nav-dots i{
+  width:6px;
+  height:6px;
+  border-radius:999px;
+  background:rgba(255,255,255,.16);
+  transition:width .18s ease,background .18s ease;
+}
+.cf-nav-dots i.done{background:rgba(215,255,63,.36)}
+.cf-nav-dots i.active{width:22px;background:#d7ff3f}
+.cf-workout-list-button{
+  width:max-content;
+  max-width:100%;
+  margin:11px auto 0;
+  padding:8px 11px 8px 13px;
+  display:flex;
+  align-items:center;
+  gap:9px;
+  border:0;
+  border-radius:10px;
+  background:transparent;
+  color:rgba(255,255,255,.58);
+  font-size:12px;
+  font-weight:800;
+  cursor:pointer;
+}
+.cf-workout-list-button:hover{color:#d7ff3f;background:rgba(215,255,63,.06)}
+.cf-list-icon{font-size:13px;letter-spacing:-2px}
+.cf-body-count-hidden{display:none!important}
+.cf-workout-list{margin-top:18px;display:grid;gap:8px}
+.cf-workout-list-row{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 46px;
+  border:1px solid rgba(255,255,255,.09);
+  border-radius:14px;
+  overflow:hidden;
+  background:rgba(255,255,255,.025);
+}
+.cf-workout-list-row.active{
+  border-color:rgba(215,255,63,.35);
+  background:rgba(215,255,63,.05);
+}
+.cf-workout-list-select{
+  min-width:0;
+  display:grid;
+  grid-template-columns:31px minmax(0,1fr) auto;
+  align-items:center;
+  gap:10px;
+  padding:11px 12px;
+  border:0;
+  background:transparent;
+  color:inherit;
+  text-align:left;
+  cursor:pointer;
+}
+.cf-list-number{
+  width:29px;
+  height:29px;
+  border-radius:9px;
+  display:grid;
+  place-items:center;
+  background:#171919;
+  color:rgba(255,255,255,.6);
+  font-size:11px;
+  font-weight:900;
+}
+.cf-workout-list-row.active .cf-list-number{background:#d7ff3f;color:#090a0a}
+.cf-list-copy{min-width:0}
+.cf-list-copy b,.cf-list-copy small{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cf-list-copy b{font-size:13px}
+.cf-list-copy small{margin-top:3px;color:rgba(255,255,255,.45);font-size:10px}
+.cf-current-label{font-size:9px;font-weight:900;letter-spacing:.8px;color:#d7ff3f}
+.cf-list-guide{
+  border:0;
+  border-left:1px solid rgba(255,255,255,.08);
+  background:rgba(255,255,255,.02);
+  color:#d7ff3f;
+  font-size:25px;
+  cursor:pointer;
+}
+.cf-list-guide:hover{background:rgba(215,255,63,.07)}
+@media(max-width:560px){
+  .cf-workout-nav{padding:12px 14px 7px}
+  .cf-workout-nav-main{grid-template-columns:40px minmax(0,1fr) 40px;gap:9px}
+  .cf-nav-arrow{width:40px;height:40px;border-radius:12px;font-size:24px}
+  .cf-nav-kicker{font-size:9px}
+  .cf-nav-count{font-size:13px}
+  .cf-nav-count strong{font-size:16px}
+  .cf-workout-list-button{margin-top:8px}
+  .cf-current-label{display:none}
+  .cf-workout-list-select{grid-template-columns:29px minmax(0,1fr)}
+}

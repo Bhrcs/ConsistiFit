@@ -1,6 +1,6 @@
-const CACHE = 'consistifit-playable-v4';
+const CACHE = 'consistifit-playable-v5';
 const CORE = [
-  './', './index.html', './styles.css', './plan-builder.css', './exercise-guides.css', './demo-app.js', './plan-builder.js', './exercise-library.js', './offline.html', './manifest.webmanifest',
+  './', './index.html', './styles.css', './plan-builder.css', './exercise-guides.css', './workout-nav.css', './demo-app.js', './plan-builder.js', './exercise-library.js', './workout-nav.js', './offline.html', './manifest.webmanifest',
   './assets/icons/icon-192.png', './assets/icons/icon-512.png', './assets/icons/apple-touch-icon.png'
 ];
 self.addEventListener('install', event => {

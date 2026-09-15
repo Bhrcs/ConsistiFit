@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+
 import '../../models/models.dart';
 import '../../services/local_state_service.dart';
 import '../../services/program_generator.dart';
@@ -9,19 +11,16 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final program = const ProgramGenerator().generate(const ProgramPreferences(
-      goal: TrainingGoal.muscle,
-      experience: ExperienceLevel.beginner,
-      equipment: EquipmentLevel.fullGym,
-      daysPerWeek: 3,
-      sessionMinutes: 45,
-    ));
-    final today = program.week[DateTime.now().weekday - 1];
+    final state = LocalStateService();
     return SafeArea(
-      child: FutureBuilder<ProfileSnapshot>(
-        future: LocalStateService().profile(),
+      child: FutureBuilder<List<Object>>(
+        future: Future.wait<Object>(<Future<Object>>[state.profile(), state.programPreferences()]),
         builder: (context, snapshot) {
-          final profile = snapshot.data ?? ProfileSnapshot.demo;
+          if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+          final profile = snapshot.data![0] as ProfileSnapshot;
+          final preferences = snapshot.data![1] as ProgramPreferences;
+          final program = const ProgramGenerator().generate(preferences);
+          final today = program.week[DateTime.now().weekday - 1];
           final nextRank = const WorkoutEngine().nextRank(profile.rankPoints);
           final remaining = nextRank == null ? 0 : nextRank.minimumRp - profile.rankPoints;
           return ListView(
@@ -31,11 +30,21 @@ class HomeScreen extends StatelessWidget {
               Text(today.label, style: const TextStyle(fontSize: 30, fontWeight: FontWeight.w900)),
               Text(
                 today.kind == ProgramDayKind.training
-                    ? '${today.workout!.estimatedMinutes} min · ${today.workout!.exercises.length} exercises'
-                    : 'Recovery is part of the plan — no catch-up workout required.',
+                    ? '${today.workout!.estimatedMinutes} min · ${today.workout!.exercises.length} exercises · ${program.environmentLabel}'
+                    : 'Recovery is part of ${program.name} — no catch-up workout required.',
                 style: const TextStyle(color: Colors.white60),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 14),
+              Card(
+                child: ListTile(
+                  leading: const Icon(Icons.route_outlined),
+                  title: Text(program.name, style: const TextStyle(fontWeight: FontWeight.w800)),
+                  subtitle: Text('${program.split} · ${program.equipmentLabel}'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => context.push('/program'),
+                ),
+              ),
+              const SizedBox(height: 10),
               Card(
                 child: Padding(
                   padding: const EdgeInsets.all(18),

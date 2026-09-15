@@ -1,5 +1,6 @@
 const assert = require('assert');
 
+// Guardrails for the local demo economy: quick early feedback, slow endgame progression.
 const RANKS=[['Iron III',0],['Iron II',50],['Iron I',100],['Bronze III',200],['Bronze II',350],['Bronze I',500],['Silver III',700],['Silver II',900],['Silver I',1100],['Gold III',1350],['Gold II',1550],['Gold I',1750],['Platinum III',1900],['Platinum II',2100],['Platinum I',2300],['Diamond III',2600],['Diamond II',3000],['Diamond I',3600],['Master',4500],['Grandmaster',6000]];
 function rankAt(rp){let current=RANKS[0];for(const r of RANKS){if(rp<r[1])break;current=r;}return current[0];}
 function perfectWeek(trainingDays=3){return trainingDays*70+(7-trainingDays)*45;}

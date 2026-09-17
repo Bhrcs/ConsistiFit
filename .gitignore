@@ -1,6 +1,8 @@
 .DS_Store
 .env
 node_modules/
+dist/
+lighthouse-results/
 flutter_app/.dart_tool/
 flutter_app/build/
 flutter_app/.flutter-plugins*

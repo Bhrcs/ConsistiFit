@@ -24,6 +24,11 @@ The current Flutter build is intentionally **local-first**. Profile progress, RP
 ## Current workout reward
 A scheduled workout plus difficulty check-in awards **35 RP, 240 XP and 85 Coins** in local prototype state.
 
+## Today and workout changes
+Today now includes a session preview, equipment and recent performance, recovery guidance, weekly recap and explained next-time targets. Replace today's session with a compatible saved/program workout or a muscle-focused workout from the local exercise library. Overrides apply to that date only; saving for reuse is explicit. Training and recovery share one primary reward claim per day, so swaps and extra sessions cannot farm RP.
+
+See [the consistency UX guide](docs/CONSISTENCY_UX.md) for behavior, migration and regression checks.
+
 ## PWA
 The prototype is installable and caches its core UI payload for offline reopening after the first successful load. iPhone users can use Safari → Share → Add to Home Screen; supported Android browsers can install it as a standalone app.
 

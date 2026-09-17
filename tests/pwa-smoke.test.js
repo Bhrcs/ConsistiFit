@@ -25,7 +25,7 @@ for (const asset of ['manifest.webmanifest','demo-app.js','plan-builder.js','exe
 assert(manifest.name === 'ConsistiFit');
 assert(manifest.display === 'standalone');
 for (const asset of ['./demo-app.js','./plan-builder.js','./exercise-library.js','./workout-nav.js','./demo-depth.js','./demo-cosmetics.js','./demo-2.js','./core-loop.js','./styles.css','./plan-builder.css','./exercise-guides.css','./workout-nav.css','./demo-depth.css','./demo-cosmetics.css','./demo-2.css','./core-loop.css']) assert(sw.includes(asset), `service worker missing ${asset}`);
-assert(sw.includes('consistifit-playable-v10'));
+assert(sw.includes('consistifit-playable-v11'));
 assert(css.includes('.bottomnav'));
 assert(planCss.includes('.plan-mode-grid'));
 assert(planCss.includes('.equipment-grid'));
@@ -65,3 +65,6 @@ const buttons = [...combined.matchAll(/<button\b([^>]*)>/gi)];
 const inactive = buttons.filter(m => !m[1].includes('onclick=') && !m[1].includes('disabled'));
 assert.equal(inactive.length, 0, `buttons without actions: ${inactive.length}`);
 console.log(`Playable PWA smoke test passed: ${buttons.length} button templates with plan-first missions, recovery-fair RP, goal-aware progression, program auditing, and mobile polish.`);
+
+for (const asset of ['workout-override.js','ux-experience.js','ux-experience.css']) { assert(html.includes(asset)); assert(sw.includes('./' + asset)); }
+for (const file of ['workout-override.js','ux-experience.js']) new Function(fs.readFileSync(file, 'utf8'));

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../models/models.dart';
 import '../../services/health_connection_service.dart';
 import '../../services/local_state_service.dart';
@@ -23,6 +24,7 @@ class _MissionsScreenState extends State<MissionsScreen> with WidgetsBindingObse
   bool loading = true;
   int mobilitySavedSeconds = 0;
   Timer? ticker;
+  WorkoutTemplate? todayWorkout;
 
   int get mobilityTotalSeconds => mobilitySavedSeconds + mobilityWatch.elapsed.inSeconds;
 
@@ -58,12 +60,14 @@ class _MissionsScreenState extends State<MissionsScreen> with WidgetsBindingObse
     final latestCompleted = await local.completedMissionCodesToday();
     final latestHealth = await local.healthSnapshotToday();
     final mobility = await local.mobilitySecondsToday();
+    final workout = await local.todayWorkout();
     if (!mounted) return;
     setState(() {
       healthConnected = connected;
       completed = latestCompleted;
       healthSnapshot = latestHealth;
       mobilitySavedSeconds = mobility;
+      todayWorkout = workout;
       loading = false;
     });
   }
@@ -136,8 +140,8 @@ class _MissionsScreenState extends State<MissionsScreen> with WidgetsBindingObse
     try {
       final RewardResult? reward = await local.completeDailyMission(code);
       if (!mounted) return;
-      setState(() => completed.add(code));
       _showReward(reward, fallback: 'Already logged today.');
+      await _refresh();
     } catch (error) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.toString())));
     }
@@ -153,7 +157,7 @@ class _MissionsScreenState extends State<MissionsScreen> with WidgetsBindingObse
   Widget build(BuildContext context) {
     final mobilityProgress = (mobilityTotalSeconds / 600).clamp(0.0, 1.0);
     final stepProgress = (healthSnapshot.steps / 8000).clamp(0.0, 1.0);
-    final staticCodes = <String>{'checkin', 'recovery'};
+    final staticCodes = <String>{'checkin', 'primary'};
     final count = completed.intersection(<String>{'steps', 'mobility', ...staticCodes}).length;
 
     return SafeArea(
@@ -165,13 +169,20 @@ class _MissionsScreenState extends State<MissionsScreen> with WidgetsBindingObse
           const SizedBox(height: 8),
           const Text('Steps can sync from Apple Health / Health Connect. Mobility is measured with the in-app timer.', style: TextStyle(color: Colors.white60)),
           const SizedBox(height: 20),
-          const Card(
+          if (todayWorkout != null) Card(
             child: ListTile(
-              leading: Icon(Icons.fitness_center),
-              title: Text('Scheduled workout', style: TextStyle(fontWeight: FontWeight.w800)),
-              subtitle: Text('+35 RP with the post-workout check-in'),
-              trailing: Icon(Icons.lock_outline),
+              leading: Icon(completed.contains('primary') ? Icons.check_circle : Icons.fitness_center),
+              title: Text(todayWorkout!.name, style: const TextStyle(fontWeight: FontWeight.w800)),
+              subtitle: Text(completed.contains('primary') ? 'Primary mission complete · today’s reward earned' : 'Today’s approved workout · complete once for the primary mission'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () async { await context.push('/workout'); if (mounted) await _refresh(); },
             ),
+          ),
+          if (!loading && todayWorkout == null) _SimpleMission(
+            done: completed.contains('primary'),
+            title: 'Planned recovery',
+            subtitle: 'Choose gentle mobility, an easy walk, or full rest.\n+30 RP · one primary reward today',
+            onPressed: () => _complete('recovery'),
           ),
           Card(
             child: Padding(
@@ -216,6 +227,8 @@ class _MissionsScreenState extends State<MissionsScreen> with WidgetsBindingObse
                   ),
                   const SizedBox(height: 8),
                   Text('${_clock(mobilityTotalSeconds)} / 10:00 · +10 RP', style: const TextStyle(color: Colors.white70)),
+                  const SizedBox(height: 8),
+                  const Text('Move gently through comfortable shoulder, hip, and ankle movements. Pause whenever you need; the timer keeps your saved progress.', style: TextStyle(color: Colors.white70)),
                   const SizedBox(height: 10),
                   LinearProgressIndicator(value: mobilityProgress),
                   const SizedBox(height: 12),
@@ -240,12 +253,6 @@ class _MissionsScreenState extends State<MissionsScreen> with WidgetsBindingObse
             title: 'Training check-in',
             subtitle: 'Reflect on readiness and recovery.\n+5 RP',
             onPressed: () => _complete('checkin'),
-          ),
-          _SimpleMission(
-            done: completed.contains('recovery'),
-            title: 'Planned recovery',
-            subtitle: 'Recovery days count toward consistency instead of forcing extra training.\n+15 RP',
-            onPressed: () => _complete('recovery'),
           ),
           const SizedBox(height: 18),
           const Text('WEEKLY RULE', style: TextStyle(fontWeight: FontWeight.w900)),

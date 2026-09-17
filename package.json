@@ -2,6 +2,10 @@
   "name": "consistifit-prototype",
   "private": true,
   "scripts": {
-    "test": "node tests/pwa-smoke.test.js && node tests/demo-balance.test.js"
+    "test": "node tests/pwa-smoke.test.js && node tests/demo-balance.test.js && node tests/workout-override.test.js && node tests/ux-experience.test.js",
+    "test:browser": "node tests/browser-flow.test.js"
+  },
+  "devDependencies": {
+    "playwright": "1.58.2"
   }
 }

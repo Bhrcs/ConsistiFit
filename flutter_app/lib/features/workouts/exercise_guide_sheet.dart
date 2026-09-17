@@ -40,6 +40,13 @@ class _ExerciseGuideSheetState extends State<ExerciseGuideSheet> {
   void initState() {
     super.initState();
     guide = const ExerciseLibrary().forExercise(widget.exercise);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    timer?.cancel();
+    if (MediaQuery.disableAnimationsOf(context)) return;
     timer = Timer.periodic(const Duration(milliseconds: 1800), (_) {
       if (!mounted) return;
       setState(() => phaseIndex = (phaseIndex + 1) % guide.demoPhases.length);
@@ -232,15 +239,15 @@ class _MotionPreview extends StatelessWidget {
               height: 142,
               child: Center(
                 child: AnimatedSlide(
-                  duration: const Duration(milliseconds: 550),
+                  duration: MediaQuery.disableAnimationsOf(context) ? Duration.zero : const Duration(milliseconds: 550),
                   curve: Curves.easeInOut,
                   offset: Offset(transform.dx / 100, transform.dy / 100),
                   child: AnimatedRotation(
-                    duration: const Duration(milliseconds: 550),
+                    duration: MediaQuery.disableAnimationsOf(context) ? Duration.zero : const Duration(milliseconds: 550),
                     curve: Curves.easeInOut,
                     turns: transform.angle / (2 * math.pi),
                     child: AnimatedScale(
-                      duration: const Duration(milliseconds: 550),
+                      duration: MediaQuery.disableAnimationsOf(context) ? Duration.zero : const Duration(milliseconds: 550),
                       curve: Curves.easeInOut,
                       scale: transform.scale,
                       child: Icon(
@@ -254,7 +261,7 @@ class _MotionPreview extends StatelessWidget {
               ),
             ),
             AnimatedSwitcher(
-              duration: const Duration(milliseconds: 250),
+              duration: MediaQuery.disableAnimationsOf(context) ? Duration.zero : const Duration(milliseconds: 250),
               child: Column(
                 key: ValueKey<int>(phaseIndex),
                 children: <Widget>[
@@ -282,10 +289,13 @@ class _MotionPreview extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget>[
                 for (var i = 0; i < phaseCount; i++)
-                  GestureDetector(
-                    onTap: () => onPhaseTap(i),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
+                  TextButton(
+                    onPressed: () => onPhaseTap(i),
+                    child: Semantics(
+                      label: 'Show ${phases[i].title}',
+                      selected: i == phaseIndex,
+                      child: AnimatedContainer(
+                      duration: MediaQuery.disableAnimationsOf(context) ? Duration.zero : const Duration(milliseconds: 200),
                       width: i == phaseIndex ? 26 : 8,
                       height: 8,
                       margin: const EdgeInsets.symmetric(horizontal: 3),
@@ -295,6 +305,7 @@ class _MotionPreview extends StatelessWidget {
                             : Colors.white24,
                         borderRadius: BorderRadius.circular(99),
                       ),
+                    ),
                     ),
                   ),
               ],

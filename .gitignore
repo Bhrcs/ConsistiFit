@@ -1,5 +1,6 @@
 .DS_Store
 .env
+node_modules/
 flutter_app/.dart_tool/
 flutter_app/build/
 flutter_app/.flutter-plugins*

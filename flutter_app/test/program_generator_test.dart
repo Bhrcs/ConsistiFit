@@ -5,6 +5,62 @@ import 'package:consistifit/services/program_generator.dart';
 void main() {
   const generator = ProgramGenerator();
 
+  test('every focus uses only known exercises compatible with equipment', () {
+    for (final environment in TrainingEnvironment.values) {
+      final preferences = ProgramPreferences(goal: TrainingGoal.muscle,
+        experience: ExperienceLevel.beginner, environment: environment,
+        daysPerWeek: 3, sessionMinutes: 45);
+      for (final focus in ProgramGenerator.muscleFocuses) {
+        final workout = generator.generateFocused(preferences, focus);
+        expect(workout.exercises, isNotEmpty, reason: '$environment $focus');
+        expect(generator.isCompatible(workout, preferences), isTrue, reason: '$environment $focus');
+        expect(generator.requiredEquipment(workout).every(preferences.availableEquipment.contains), isTrue);
+        expect(workout.exercises.map((exercise) => exercise.name).toSet().length, workout.exercises.length);
+      }
+    }
+  });
+
+  test('focus respects primary muscles instead of matching incidental secondary muscles', () {
+    const bodyweight = ProgramPreferences(goal: TrainingGoal.muscle,
+      experience: ExperienceLevel.beginner, environment: TrainingEnvironment.custom,
+      daysPerWeek: 3, sessionMinutes: 45);
+    final back = generator.generateFocused(bodyweight, 'Back');
+    expect(back.exercises.every((exercise) => exercise.muscleGroup.contains('Back')), isTrue);
+    expect(back.exercises.any((exercise) => exercise.name.contains('Push-up')), isFalse);
+    expect(generator.generateFocused(bodyweight, 'Arms').exercises.every((exercise) =>
+      exercise.muscleGroup.startsWith('Triceps') || exercise.muscleGroup.startsWith('Biceps') ||
+      exercise.muscleGroup.startsWith('Arms')), isTrue);
+    expect(() => generator.generateFocused(bodyweight, 'Unrecognized'), throwsArgumentError);
+  });
+
+  test('all generated plans have explicit catalog requirements and no duplicate exercises', () {
+    for (final environment in TrainingEnvironment.values) {
+      for (final goal in TrainingGoal.values) {
+        for (final experience in ExperienceLevel.values) {
+          final preferences = ProgramPreferences(goal: goal, experience: experience,
+            environment: environment, daysPerWeek: 4, sessionMinutes: 75);
+          for (final workout in generator.generate(preferences).workouts) {
+            expect(generator.isCompatible(workout, preferences), isTrue,
+              reason: '$environment $goal $experience ${workout.name}');
+          }
+        }
+      }
+    }
+  });
+
+  test('saved workouts cannot bypass equipment requirements using muscle labels', () {
+    const bodyweight = ProgramPreferences(goal: TrainingGoal.muscle,
+      experience: ExperienceLevel.beginner, environment: TrainingEnvironment.custom,
+      daysPerWeek: 3, sessionMinutes: 45);
+    const unknown = WorkoutTemplate(name: 'Unknown', estimatedMinutes: 15, exercises: [
+      ExercisePrescription(name: 'Magic Row', muscleGroup: 'Back', sets: 3, repMin: 8, repMax: 12, restSeconds: 60),
+    ]);
+    final home = generator.generate(ProgramPreferences.homeDefault).workouts.first;
+    expect(generator.isCompatible(unknown, bodyweight), isFalse);
+    expect(generator.isCompatible(home, bodyweight), isFalse);
+    expect(generator.isCompatible(const WorkoutTemplate(name: 'Empty', estimatedMinutes: 15, exercises: []), bodyweight), isFalse);
+  });
+
   test('home plan uses dumbbells bench and bodyweight', () {
     final program = generator.generate(const ProgramPreferences(
       goal: TrainingGoal.muscle,

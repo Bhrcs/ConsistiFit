@@ -86,12 +86,6 @@ class _ShellScreenState extends State<ShellScreen> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) => Scaffold(
         body: pages[index],
-        floatingActionButton: index == 0
-            ? FloatingActionButton.extended(
-                onPressed: () => context.push('/workout'),
-                label: const Text('Start workout'),
-              )
-            : null,
         bottomNavigationBar: NavigationBar(
           selectedIndex: index,
           onDestinationSelected: (value) {

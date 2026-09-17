@@ -1,0 +1,74 @@
+const { chromium } = require('playwright');
+const fs = require('fs');
+const path = require('path');
+const http = require('http');
+const assert = require('assert/strict');
+const root = path.resolve(__dirname, '..');
+const server = http.createServer((req, res) => {
+  const file = path.resolve(root, '.' + decodeURIComponent(req.url.split('?')[0] === '/' ? '/index.html' : req.url.split('?')[0]));
+  if (!file.startsWith(root + path.sep)) { res.writeHead(403); return res.end(); }
+  fs.readFile(file, (err, data) => { if (err) {res.writeHead(404);res.end();return;}
+    res.setHeader('Content-Type', ({'.js':'application/javascript','.css':'text/css','.html':'text/html','.json':'application/json','.webmanifest':'application/manifest+json'})[path.extname(file)] || 'application/octet-stream');res.end(data); });
+});
+(async () => {
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  const browser = await chromium.launch({executablePath:process.env.CHROME_PATH || undefined,headless:true});
+  try {
+    const page = await browser.newPage({viewport:{width:375,height:812},deviceScaleFactor:1});
+    await page.clock.setFixedTime(new Date('2026-09-16T12:00:00Z'));
+    const errors=[]; page.on('pageerror', error => errors.push(error.message));
+    await page.goto(`http://127.0.0.1:${server.address().port}`);
+    await page.evaluate(() => {state.cf2.onboardingComplete=true;saveState();document.querySelector('.cf2-onboarding')?.remove();renderAll();});
+    await page.getByRole('button',{name:'Preview workout',exact:true}).click();
+    assert(await page.getByRole('button',{name:'Start workout',exact:true}).isEnabled());
+    console.log('preview', await page.locator('#sheetContent').innerText());
+    await page.getByRole('button',{name:'Choose another workout',exact:true}).click();
+    await page.getByRole('button',{name:'Back',exact:true}).click();
+    await page.getByRole('button',{name:'Use for today',exact:true}).click();
+    await page.getByRole('button',{name:'Start workout',exact:true}).click();
+    await page.locator('.set-check').first().click();
+    console.log('setFeedback', await page.locator('#toast').innerText());
+    console.log('width',await page.evaluate(()=>({window:innerWidth,body:document.body.scrollWidth})));
+    await page.reload();
+    await page.getByRole('button',{name:'Resume workout',exact:true}).click();
+    console.log('resume', await page.evaluate(()=>({name:state.workout.active.name,done:state.workout.active.exercises[0].sets[0].done})));
+    await page.evaluate(()=>{state.workout.active.exercises.forEach(ex=>ex.sets.forEach(s=>{s.done=true;s.reps=10;}));saveState();});
+    await page.getByRole('button',{name:'Finish Workout',exact:true}).click();
+    await page.getByRole('button',{name:'Good Stay on track'}).click();
+    await page.getByText('NEXT TIME',{exact:true}).waitFor();
+    const reward=await page.evaluate(()=>state.profile.rp);
+    assert.equal(reward,35);
+    assert((await page.locator('#sheetContent').innerText()).includes('+30 RP'));
+    await page.getByRole('button',{name:'Close dialog'}).click();
+    await page.getByRole('button',{name:'Change today',exact:true}).click();
+    await page.getByRole('button',{name:'Chest',exact:true}).click();
+    await page.getByRole('button',{name:'Use for today',exact:true}).click();
+    await page.getByRole('button',{name:'Start workout',exact:true}).click();
+    await page.evaluate(()=>{state.workout.active.exercises.forEach(ex=>ex.sets.forEach(s=>{s.done=true;s.reps=10;}));finishWorkout('Good');});
+    await page.getByText('NEXT TIME',{exact:true}).waitFor();
+    assert.equal(await page.evaluate(()=>state.profile.rp),reward);
+    assert((await page.locator('#sheetContent').innerText()).includes('no additional primary reward'));
+    await page.getByRole('button',{name:'Close dialog'}).click();
+    await page.evaluate(()=>{state.demo.dayOffset=1;ensureDaily();renderAll();});
+    await page.getByRole('button',{name:'Open recovery',exact:true}).click();
+    await page.getByRole('spinbutton',{name:'Recovery minutes'}).fill('10');
+    await page.getByRole('button',{name:'Save recovery',exact:true}).click();
+    assert.equal(await page.evaluate(()=>state.daily.mobility),10);
+    assert.equal(await page.evaluate(()=>state.profile.rp),reward+30);
+    await page.getByRole('button',{name:'Close dialog'}).click();
+    await page.getByRole('button',{name:'View weekly recap',exact:true}).click();
+    console.log('recap',await page.locator('#sheetContent').innerText());
+    await page.setViewportSize({width:320,height:640});
+    await page.evaluate(()=>document.documentElement.style.fontSize='200%');
+    assert((await page.evaluate(()=>document.body.scrollWidth))<=320);
+    await page.getByRole('button',{name:'Close dialog'}).click();
+    await page.evaluate(async()=>{await navigator.serviceWorker.ready;});
+    await page.context().setOffline(true);
+    await page.reload();
+    await page.getByRole('button',{name:'Open recovery',exact:true}).waitFor();
+    assert.equal(await page.evaluate(()=>state.profile.rp),reward+30);
+    console.log('PASS finish summary, no repeat RP, recovery log, weekly recap, 320px layout, offline reload');
+    console.log('errors', errors);
+    if(errors.length) throw new Error(errors.join('\n'));
+  } finally {await browser.close();server.close();}
+})().catch(error => {console.error(error);server.close();process.exitCode=1;});

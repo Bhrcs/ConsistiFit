@@ -49,3 +49,10 @@ jobs:
           path: dist
       - id: deployment
         uses: actions/deploy-pages@v4
+      - name: Verify exact commit is live
+        run: |
+          sleep 10
+          npm run check:production
+        env:
+          CONSISTIFIT_URL: ${{ steps.deployment.outputs.page_url }}
+          CONSISTIFIT_EXPECTED_COMMIT: ${{ env.CONSISTIFIT_COMMIT }}

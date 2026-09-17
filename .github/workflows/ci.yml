@@ -1,16 +1,16 @@
-name: ConsistiFit CI
+name: ConsistiFit Web CI
 on:
   push:
     branches: [main]
   pull_request:
     branches: [main]
 concurrency:
-  group: consistifit-ci-${{ github.workflow }}-${{ github.ref }}
+  group: consistifit-web-ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 permissions:
   contents: read
 jobs:
-  pwa:
+  web:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -31,53 +31,3 @@ jobs:
           retention-days: 7
       - run: npx playwright install --with-deps chromium
       - run: npm run test:browser
-
-  flutter:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: flutter_app
-    steps:
-      - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-          cache: true
-      - run: flutter --version
-      - run: flutter pub get
-      - run: flutter analyze
-      - run: flutter test --reporter expanded --timeout 2m
-
-  android-smoke:
-    needs: flutter
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: flutter_app
-    steps:
-      - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-          cache: true
-      - run: flutter create . --platforms=android --project-name consistifit --org com.consistifit
-      - run: python tool/configure_native.py
-      - run: flutter pub get
-      - run: flutter build apk --debug
-
-  ios-smoke:
-    needs: flutter
-    runs-on: macos-latest
-    defaults:
-      run:
-        working-directory: flutter_app
-    steps:
-      - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-          cache: true
-      - run: flutter create . --platforms=ios --project-name consistifit --org com.consistifit
-      - run: python3 tool/configure_native.py
-      - run: flutter pub get
-      - run: flutter build ios --simulator --no-codesign

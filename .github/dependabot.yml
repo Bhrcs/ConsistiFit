@@ -25,16 +25,3 @@ updates:
       github-actions:
         patterns:
           - "*"
-
-  - package-ecosystem: pub
-    directory: /flutter_app
-    schedule:
-      interval: weekly
-      day: monday
-      time: "10:00"
-      timezone: America/Denver
-    open-pull-requests-limit: 5
-    groups:
-      flutter-dependencies:
-        patterns:
-          - "*"

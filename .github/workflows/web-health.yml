@@ -1,0 +1,43 @@
+name: Production Health Check
+on:
+  schedule:
+    - cron: '23 * * * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+  issues: write
+jobs:
+  health:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Check live ConsistiFit PWA
+        run: node scripts/check-production.js
+        env:
+          CONSISTIFIT_URL: https://bhrcs.github.io/ConsistiFit/
+      - name: Open or update outage issue
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TITLE='[Automation] Production health check failing'
+          ISSUE=$(gh issue list --state open --search "$TITLE in:title" --json number --jq '.[0].number // empty')
+          BODY="The scheduled production health check failed at $(date -u +'%Y-%m-%d %H:%M UTC').\n\nWorkflow: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID\nLive site: https://bhrcs.github.io/ConsistiFit/"
+          if [ -n "$ISSUE" ]; then
+            gh issue comment "$ISSUE" --body "$BODY"
+          else
+            gh issue create --title "$TITLE" --body "$BODY"
+          fi
+      - name: Close recovered outage issue
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TITLE='[Automation] Production health check failing'
+          ISSUE=$(gh issue list --state open --search "$TITLE in:title" --json number --jq '.[0].number // empty')
+          if [ -n "$ISSUE" ]; then
+            gh issue close "$ISSUE" --comment "Production health checks recovered automatically at $(date -u +'%Y-%m-%d %H:%M UTC')."
+          fi

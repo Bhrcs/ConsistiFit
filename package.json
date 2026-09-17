@@ -3,7 +3,11 @@
   "private": true,
   "scripts": {
     "test": "node tests/pwa-smoke.test.js && node tests/demo-balance.test.js && node tests/workout-override.test.js && node tests/ux-experience.test.js",
-    "test:browser": "node tests/browser-flow.test.js"
+    "test:browser": "node tests/browser-flow.test.js",
+    "build:web": "node scripts/build-web.js",
+    "verify:web": "node scripts/verify-web-build.js",
+    "check:production": "node scripts/check-production.js",
+    "automation:check": "npm test && npm run build:web && npm run verify:web"
   },
   "devDependencies": {
     "playwright": "1.58.2"

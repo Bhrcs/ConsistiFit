@@ -7,8 +7,8 @@ ConsistiFit is a mobile-first fitness app built around **consistency instead of 
 - `payload/` — compressed prototype UI payload
 - `manifest.webmanifest`, `service-worker.js`, `offline.html` — installable PWA layer
 - `flutter_app/` — iOS/Android Flutter application
-- `docs/` — product, architecture, health/notification and roadmap specifications
-- `.github/workflows/pages.yml` — GitHub Pages deployment
+- `docs/` — product, architecture, health/notification, automation and roadmap specifications
+- `.github/workflows/` — CI, tested deployment, production monitoring and scheduled quality audits
 
 ## Current architecture
 The current Flutter build is intentionally **local-first**. Profile progress, RP, XP, Coins, missions, shop purchases, workout logs and health summaries are stored on the device with `shared_preferences`. No cloud backend or account system is required at this stage.
@@ -29,8 +29,25 @@ Today now includes a session preview, equipment and recent performance, recovery
 
 See [the consistency UX guide](docs/CONSISTENCY_UX.md) for behavior, migration and regression checks.
 
+## Automated web operations
+The PWA is now built and deployed through an automated production pipeline. Pull requests and `main` run regression/browser checks plus production artifact validation. GitHub Pages deploys only after the exact `main` commit passes CI. The deployment stamps the service-worker cache from the commit automatically and publishes `build-info.json`, so manual cache-version bumps are no longer needed.
+
+Production is checked hourly, a Lighthouse/security quality audit runs daily, and Dependabot checks npm, GitHub Actions and Flutter packages weekly. The Pages workflow also supports manual deployment of a known-good commit for rollback.
+
+See [Web Automation](docs/AUTOMATION.md) for monitoring, quality budgets, deployment flow and rollback instructions.
+
 ## PWA
 The prototype is installable and caches its core UI payload for offline reopening after the first successful load. iPhone users can use Safari → Share → Add to Home Screen; supported Android browsers can install it as a standalone app.
+
+For a local production-style web build:
+
+```bash
+npm ci
+npm run build:web
+npm run verify:web
+```
+
+The deployable artifact is written to `dist/`.
 
 ## Flutter
 The mobile source is under `flutter_app/`. On a machine with Flutter 3.44+/Dart 3.12+, run:

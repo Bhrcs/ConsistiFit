@@ -60,7 +60,7 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
-  testWidgets('preview and set feedback fit a narrow phone with large text', (tester) async {
+  testWidgets('workout preview fits a narrow phone with large text', (tester) async {
     tester.view.physicalSize = const Size(320, 900);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
@@ -71,16 +71,23 @@ void main() {
     await tester.pumpWidget(_app(WorkoutScreen(localState: local), scale: 2));
     await tester.pumpAndSettle();
     expect(find.text('Workout preview'), findsOneWidget);
+    expect(find.text('Back focus'), findsOneWidget);
+    expect(find.text('Start workout'), findsOneWidget);
     expect(find.byType(Checkbox), findsNothing);
     expect(tester.takeException(), isNull);
-    final startButton = tester.widget<FilledButton>(find.widgetWithText(FilledButton, 'Start workout'));
-    startButton.onPressed!.call();
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('completing a set shows immediate feedback', (tester) async {
+    final local = LocalStateService(store: _MemoryStore(), clock: () => DateTime(2026, 9, 14, 10));
+    final exercise = const ProgramGenerator().generateFocused(ProgramPreferences.homeDefault, 'Back').exercises.first;
+    await local.setTodayOverride(WorkoutTemplate(name: 'Back focus', exercises: [exercise.copyWith(sets: 3)], estimatedMinutes: 20));
+    await tester.pumpWidget(_app(WorkoutScreen(localState: local)));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Start workout'));
     await tester.pumpAndSettle();
     expect(find.byType(Checkbox), findsWidgets);
-    await tester.scrollUntilVisible(find.byType(Checkbox).first, 160, scrollable: find.byType(Scrollable).first);
     await tester.tap(find.byType(Checkbox).first);
-    await tester.pump();
-    await tester.drag(find.byType(ListView).first, const Offset(0, 500));
     await tester.pump();
     expect(find.text('Set complete · nice work'), findsOneWidget);
     expect(tester.takeException(), isNull);

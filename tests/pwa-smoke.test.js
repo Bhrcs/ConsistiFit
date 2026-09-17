@@ -27,7 +27,8 @@ for (const asset of ['manifest.webmanifest','demo-app.js','plan-builder.js','exe
 assert(manifest.name === 'ConsistiFit');
 assert(manifest.display === 'standalone');
 for (const asset of ['./demo-app.js','./plan-builder.js','./exercise-library.js','./workout-nav.js','./demo-depth.js','./demo-cosmetics.js','./demo-2.js','./core-loop.js','./premium-ui.js','./styles.css','./plan-builder.css','./exercise-guides.css','./workout-nav.css','./demo-depth.css','./demo-cosmetics.css','./demo-2.css','./core-loop.css','./premium-ui.css']) assert(sw.includes(asset), `service worker missing ${asset}`);
-assert(sw.includes('consistifit-playable-v12'));
+assert(sw.includes("const CACHE_PREFIX = 'consistifit-playable-';"));
+assert(sw.includes('__BUILD_ID__'), 'source service worker must contain build-id placeholder');
 assert(css.includes('.bottomnav'));
 assert(planCss.includes('.plan-mode-grid'));
 assert(planCss.includes('.equipment-grid'));

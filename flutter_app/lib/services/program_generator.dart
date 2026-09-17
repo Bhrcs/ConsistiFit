@@ -3,6 +3,117 @@ import '../models/models.dart';
 class ProgramGenerator {
   const ProgramGenerator();
 
+  static const muscleFocuses = <String>['Back', 'Chest', 'Legs', 'Shoulders', 'Arms', 'Core', 'Full Body'];
+
+  // Reuse the existing program database, including its explicit equipment
+  // requirements. Unknown exercises are never silently treated as bodyweight.
+  Map<String, _Candidate> get _catalog {
+    final entries = <String, _Candidate>{};
+    for (final group in <List<_Candidate>>[
+      _squatA, _chestA, _rowA, _hingeA, _shoulderA, _coreA, _squatB,
+      _pullB, _chestB, _hingeB, _accessoryB, _coreB, _singleLegC,
+      _chestC, _rowC, _gluteC, _armsC, _calfCoreC,
+    ]) {
+      for (final candidate in group) {
+        entries.putIfAbsent(candidate.exercise.name, () => candidate);
+      }
+    }
+    const additionalRequirements = <String, Set<EquipmentType>>{
+      'Bench-Supported Dumbbell Row': {EquipmentType.dumbbells, EquipmentType.bench},
+      'Dumbbell Lateral Raise': {EquipmentType.dumbbells},
+      'Seated Dumbbell Shoulder Press': {EquipmentType.dumbbells, EquipmentType.bench},
+      'Single-Leg Dumbbell Romanian Deadlift': {EquipmentType.dumbbells},
+      'Bench Leg Raise': {EquipmentType.bench},
+      'Arnold Press': {EquipmentType.dumbbells},
+      'Rear Delt Dumbbell Raise': {EquipmentType.dumbbells},
+      'Overhead Dumbbell Triceps Extension': {EquipmentType.dumbbells},
+      'Dumbbell Sumo Squat': {EquipmentType.dumbbells},
+      'Dumbbell Step-Up on Bench': {EquipmentType.dumbbells, EquipmentType.bench},
+      'Seated Leg Curl': {EquipmentType.legCurl},
+      'Reverse Pec Deck': {EquipmentType.pecDeck},
+      'Warm-up': {}, 'Cooldown + Mobility': {}, 'Cooldown': {}, 'Mobility Reset': {},
+      'Brisk Walk / Easy Run': {}, 'Walk / Run Intervals': {},
+      'Easy Bike / Treadmill / Elliptical': {EquipmentType.cardioMachine},
+      'Machine Intervals': {EquipmentType.cardioMachine},
+    };
+    for (final workout in <WorkoutTemplate>[
+      ..._homeFullBody(), ..._homeUpperLower(), ..._gymFullBody(), ..._gymUpperLower(),
+      ..._cardioPlan(ProgramPreferences.homeDefault),
+      ..._cardioPlan(const ProgramPreferences(goal: TrainingGoal.cardio,
+        experience: ExperienceLevel.beginner, environment: TrainingEnvironment.gymMachines,
+        daysPerWeek: 3, sessionMinutes: 45)),
+    ]) {
+      for (final exercise in workout.exercises) {
+        final requirements = additionalRequirements[exercise.name];
+        if (requirements != null) entries.putIfAbsent(exercise.name, () => _Candidate(requirements, exercise));
+      }
+    }
+    return entries;
+  }
+
+  bool isCompatible(WorkoutTemplate workout, ProgramPreferences preferences) {
+    if (workout.exercises.isEmpty || workout.name.trim().isEmpty || workout.estimatedMinutes <= 0) return false;
+    final catalog = _catalog;
+    final names = <String>{};
+    return workout.exercises.every((exercise) {
+      final candidate = catalog[exercise.name];
+      return candidate != null && names.add(exercise.name) &&
+        exercise.sets > 0 && exercise.sets <= 10 && exercise.restSeconds >= 0 &&
+        exercise.loadIncrement.isFinite && exercise.loadIncrement >= 0 &&
+        (exercise.repMin == null) == (exercise.repMax == null) &&
+        exercise.isTimed == candidate.exercise.isTimed &&
+        (exercise.isTimed || (exercise.repMin! > 0 && exercise.repMax! >= exercise.repMin!)) &&
+        candidate.requires.every(preferences.availableEquipment.contains);
+    });
+  }
+
+  Set<EquipmentType> requiredEquipment(WorkoutTemplate workout) {
+    final catalog = _catalog;
+    final required = <EquipmentType>{};
+    for (final exercise in workout.exercises) {
+      final entry = catalog[exercise.name];
+      if (entry == null) throw ArgumentError('Unknown exercise: ${exercise.name}');
+      required.addAll(entry.requires);
+    }
+    return required.isEmpty ? <EquipmentType>{EquipmentType.bodyweight} : required;
+  }
+
+  String _focusOf(ExercisePrescription exercise) {
+    final primary = exercise.muscleGroup.split('·').first.trim().toLowerCase();
+    if (<String>['back', 'upper back', 'lats'].contains(primary)) return 'Back';
+    if (<String>['quads', 'glutes', 'hamstrings', 'calves'].contains(primary)) return 'Legs';
+    if (<String>['biceps', 'triceps', 'arms'].contains(primary)) return 'Arms';
+    if (<String>['shoulders', 'rear delts'].contains(primary)) return 'Shoulders';
+    if (primary == 'chest') return 'Chest';
+    if (primary == 'core') return 'Core';
+    return '';
+  }
+
+  WorkoutTemplate generateFocused(ProgramPreferences preferences, String focus) {
+    if (!muscleFocuses.contains(focus)) throw ArgumentError.value(focus, 'focus', 'Unknown muscle focus');
+    final compatible = _catalog.values.where((entry) =>
+      entry.requires.every(preferences.availableEquipment.contains) &&
+      _focusOf(entry.exercise).isNotEmpty).toList();
+    // Prefer the selected equipment while keeping every fallback truthful.
+    compatible.sort((a, b) => b.requires.length.compareTo(a.requires.length));
+    final selected = <ExercisePrescription>[];
+    final limit = preferences.sessionMinutes <= 30 ? 4 : 5;
+    if (focus == 'Full Body') {
+      for (final group in <String>['Legs', 'Chest', 'Back', 'Core', 'Shoulders']) {
+        final matches = compatible.where((entry) => _focusOf(entry.exercise) == group);
+        if (matches.isNotEmpty && selected.length < limit) selected.add(matches.first.exercise);
+      }
+    } else {
+      selected.addAll(compatible.where((entry) => _focusOf(entry.exercise) == focus)
+        .take(limit).map((entry) => entry.exercise));
+    }
+    if (selected.isEmpty) throw StateError('No $focus exercises match your equipment. Update your equipment or choose another focus.');
+    final exercises = selected.map((exercise) => _tuneForGoal(exercise, preferences)).toList();
+    final seconds = exercises.fold<int>(300, (total, exercise) => total + exercise.sets * (45 + exercise.restSeconds));
+    return WorkoutTemplate(name: '$focus Focus', exercises: exercises,
+      estimatedMinutes: (seconds / 60).ceil());
+  }
+
   GeneratedProgram generate(ProgramPreferences p) {
     final raw = _workoutsFor(p);
     final workouts = raw
@@ -11,7 +122,9 @@ class ProgramGenerator {
               kind: workout.kind,
               estimatedMinutes: p.sessionMinutes,
               exercises: _fitSession(
-                workout.exercises.map((exercise) => _tuneForGoal(exercise, p)).toList(growable: false),
+                <String, ExercisePrescription>{
+                  for (final exercise in workout.exercises) exercise.name: _tuneForGoal(exercise, p),
+                }.values.toList(growable: false),
                 p.sessionMinutes,
               ),
             ))
@@ -474,7 +587,8 @@ class ProgramGenerator {
     _Candidate({EquipmentType.dumbbells}, ExercisePrescription(name: 'Dumbbell Split Squat', muscleGroup: 'Quads · Glutes', sets: 3, repMin: 8, repMax: 12, restSeconds: 90)),
     _Candidate({EquipmentType.kettlebell}, ExercisePrescription(name: 'Kettlebell Split Squat', muscleGroup: 'Quads · Glutes', sets: 3, repMin: 8, repMax: 12, restSeconds: 90)),
     _Candidate({EquipmentType.legPress}, ExercisePrescription(name: 'Single-Leg Press', muscleGroup: 'Quads · Glutes', sets: 3, repMin: 10, repMax: 15, restSeconds: 90)),
-    _Candidate({}, ExercisePrescription(name: 'Bulgarian Split Squat', muscleGroup: 'Quads · Glutes', sets: 3, repMin: 8, repMax: 15, restSeconds: 60)),
+    _Candidate({EquipmentType.bench}, ExercisePrescription(name: 'Bulgarian Split Squat', muscleGroup: 'Quads · Glutes', sets: 3, repMin: 8, repMax: 15, restSeconds: 60)),
+    _Candidate({}, ExercisePrescription(name: 'Reverse Lunge', muscleGroup: 'Quads · Glutes', sets: 3, repMin: 10, repMax: 15, restSeconds: 60)),
   ];
   static const _chestC = <_Candidate>[
     _Candidate({EquipmentType.dumbbells}, ExercisePrescription(name: 'Dumbbell Floor Press', muscleGroup: 'Chest · Triceps', sets: 3, repMin: 8, repMax: 12, restSeconds: 90)),

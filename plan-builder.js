@@ -48,7 +48,7 @@ function cfCustomFull(){return [
   ['Dead Bug','Core',2,8,12,45]
  ]},
  {name:'Custom Full Body C',exercises:[
-  cfPick([[['dumbbells','bench'],['Dumbbell Bulgarian Split Squat','Quads · Glutes',3,8,12,90]],[['dumbbells'],['Dumbbell Split Squat','Quads · Glutes',3,8,12,90]],[['legpress'],['Single-Leg Press','Quads · Glutes',3,10,15,90]],[[],['Bulgarian Split Squat','Quads · Glutes',3,8,15,60]]]),
+  cfPick([[['dumbbells','bench'],['Dumbbell Bulgarian Split Squat','Quads · Glutes',3,8,12,90]],[['dumbbells'],['Dumbbell Split Squat','Quads · Glutes',3,8,12,90]],[['legpress'],['Single-Leg Press','Quads · Glutes',3,10,15,90]],[[],['Reverse Lunge','Quads · Glutes',3,8,15,60]]]),
   cfPick([[['dumbbells'],['Dumbbell Floor Press','Chest · Triceps',3,8,12,90]],[['chestpress'],['Machine Chest Press','Chest · Triceps',3,8,12,90]],[['cable'],['Cable Fly','Chest',3,10,15,60]],[[],['Close-Grip Push-up','Chest · Triceps',3,8,20,60]]]),
   cfPick([[['dumbbells','bench'],['Chest-Supported Dumbbell Row','Back · Biceps',3,8,12,90]],[['rowmachine'],['Seated Row Machine','Back · Biceps',3,10,15,90]],[['cable'],['Cable Row','Back · Biceps',3,10,15,90]],[['bands'],['Resistance Band Row','Back · Biceps',3,12,20,60]],[[],['Prone Reverse Snow Angel','Upper Back',3,10,15,60]]]),
   cfPick([[['dumbbells','bench'],['Dumbbell Hip Thrust on Bench','Glutes',3,10,15,90]],[['cable'],['Cable Pull-Through','Glutes · Hamstrings',3,10,15,75]],[['hipabduction'],['Hip Abduction Machine','Glutes',3,12,20,60]],[['bands'],['Band Glute Bridge','Glutes',3,12,20,60]],[[],['Glute Bridge','Glutes',3,12,20,60]]]),
@@ -61,7 +61,7 @@ function cfCustomUpperLower(){const f=cfCustomFull();return [
  {name:'Custom Lower A',exercises:[f[0].exercises[0],f[0].exercises[3],f[2].exercises[0],f[2].exercises[3],f[2].exercises[5]]},
  {name:'Custom Upper B',exercises:[f[1].exercises[2],f[1].exercises[1],f[2].exercises[2],f[0].exercises[4],f[1].exercises[4],f[2].exercises[4]]},
  {name:'Custom Lower B',exercises:[f[1].exercises[0],f[1].exercises[3],f[2].exercises[0],f[2].exercises[3],f[1].exercises[5]]}
-]}
+].map(workout=>{const seen=new Set();return {...workout,exercises:workout.exercises.filter(ex=>{if(seen.has(ex[0]))return false;seen.add(ex[0]);return true})}})}
 function cfApplyGoalAndTime(program){cfEnsurePlan();const max=state.plan.minutes<=30?4:state.plan.minutes<=45?5:6;return program.map(w=>({name:w.name,exercises:w.exercises.slice(0,max).map((e,i)=>{const x=[...e];if(state.plan.goal==='strength'&&i<4&&x[3]<20){x[2]=Math.max(3,x[2]);x[3]=5;x[4]=8;x[5]=Math.max(120,x[5])}if(state.plan.goal==='habit'){x[2]=Math.min(2,x[2]);x[5]=Math.min(75,x[5])}return x})}))}
 function cfProgram(){cfEnsurePlan();const upperLower=state.plan.days>=4;if(state.plan.mode==='home')return cfApplyGoalAndTime(upperLower?CF_HOME_UL:CF_HOME_FULL);if(state.plan.mode==='gym')return cfApplyGoalAndTime(upperLower?CF_GYM_UL:CF_GYM_FULL);return cfApplyGoalAndTime(upperLower?cfCustomUpperLower():cfCustomFull())}
 todayTemplate=function(){const program=cfProgram();return program[workoutCount()%program.length]};

@@ -136,6 +136,20 @@ class ExercisePrescription {
 
   bool get isTimed => repMin == null || repMax == null;
 
+  Map<String, dynamic> toJson() => <String, dynamic>{
+    'name': name, 'muscleGroup': muscleGroup, 'sets': sets,
+    'repMin': repMin, 'repMax': repMax, 'restSeconds': restSeconds,
+    'loadIncrement': loadIncrement,
+  };
+
+  factory ExercisePrescription.fromJson(Map<String, dynamic> json) => ExercisePrescription(
+    name: json['name'] as String, muscleGroup: json['muscleGroup'] as String,
+    sets: (json['sets'] as num).toInt(), repMin: (json['repMin'] as num?)?.toInt(),
+    repMax: (json['repMax'] as num?)?.toInt(),
+    restSeconds: (json['restSeconds'] as num).toInt(),
+    loadIncrement: (json['loadIncrement'] as num? ?? 5).toDouble(),
+  );
+
   ExercisePrescription copyWith({
     int? sets,
     int? repMin,
@@ -166,6 +180,22 @@ class WorkoutTemplate {
   final List<ExercisePrescription> exercises;
   final int estimatedMinutes;
   final WorkoutKind kind;
+
+  int get totalSets => exercises.fold(0, (total, exercise) => total + exercise.sets);
+  int get requiredCompletedSets => (totalSets * 0.7).ceil();
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+    'name': name, 'estimatedMinutes': estimatedMinutes, 'kind': kind.name,
+    'exercises': exercises.map((exercise) => exercise.toJson()).toList(),
+  };
+
+  factory WorkoutTemplate.fromJson(Map<String, dynamic> json) => WorkoutTemplate(
+    name: json['name'] as String,
+    estimatedMinutes: (json['estimatedMinutes'] as num).toInt(),
+    kind: WorkoutKind.values.firstWhere((kind) => kind.name == json['kind'], orElse: () => WorkoutKind.strength),
+    exercises: (json['exercises'] as List<dynamic>)
+      .map((row) => ExercisePrescription.fromJson(Map<String, dynamic>.from(row as Map))).toList(),
+  );
 }
 
 class ProgramDay {
@@ -216,6 +246,7 @@ class LoggedSet {
   final String exerciseName;
   final int setNumber;
   final double weight;
+  /// Repetitions for resistance sets; logged seconds for timed prescriptions.
   final int reps;
   final bool completed;
 
@@ -320,4 +351,82 @@ class RankBand {
   const RankBand(this.label, this.minimumRp);
   final String label;
   final int minimumRp;
+}
+
+class ActiveWorkoutSession {
+  const ActiveWorkoutSession({required this.id, required this.dayKey,
+    required this.template, required this.startedAt, required this.plannedKind});
+  final String id;
+  final String dayKey;
+  final WorkoutTemplate template;
+  final DateTime startedAt;
+  final ProgramDayKind plannedKind;
+  Map<String, dynamic> toJson() => <String, dynamic>{
+    'id': id, 'dayKey': dayKey, 'template': template.toJson(),
+    'startedAt': startedAt.toIso8601String(), 'plannedKind': plannedKind.name,
+  };
+  factory ActiveWorkoutSession.fromJson(Map<String, dynamic> json) => ActiveWorkoutSession(
+    id: json['id'] as String, dayKey: json['dayKey'] as String,
+    template: WorkoutTemplate.fromJson(Map<String, dynamic>.from(json['template'] as Map)),
+    startedAt: DateTime.parse(json['startedAt'] as String),
+    plannedKind: ProgramDayKind.values.byName(json['plannedKind'] as String),
+  );
+}
+
+class WorkoutHistoryEntry {
+  const WorkoutHistoryEntry({required this.id, required this.name, required this.dayKey,
+    required this.completedAt, required this.sets, required this.difficulty,
+    required this.durationSeconds, required this.rp, required this.primaryCompleted,
+    this.personalRecords = 0, this.template});
+  final String id;
+  final String name;
+  final String dayKey;
+  final DateTime completedAt;
+  final List<LoggedSet> sets;
+  final SessionDifficulty difficulty;
+  final int durationSeconds;
+  final int rp;
+  final bool primaryCompleted;
+  final int personalRecords;
+  final WorkoutTemplate? template;
+  Map<String, dynamic> toJson() => <String, dynamic>{
+    'id': id, 'name': name, 'dayKey': dayKey, 'completedAt': completedAt.toIso8601String(),
+    'sets': sets.map((set) => set.toJson()).toList(), 'difficulty': difficulty.name,
+    'durationSeconds': durationSeconds, 'rp': rp, 'primaryCompleted': primaryCompleted,
+    'personalRecords': personalRecords, 'template': template?.toJson(),
+  };
+  factory WorkoutHistoryEntry.fromJson(Map<String, dynamic> json) => WorkoutHistoryEntry(
+    id: json['id'] as String, name: json['name'] as String, dayKey: json['dayKey'] as String,
+    completedAt: DateTime.parse(json['completedAt'] as String),
+    sets: (json['sets'] as List<dynamic>).map((set) => LoggedSet.fromJson(Map<String, dynamic>.from(set as Map))).toList(),
+    difficulty: SessionDifficulty.values.byName(json['difficulty'] as String),
+    durationSeconds: (json['durationSeconds'] as num).toInt(), rp: (json['rp'] as num? ?? 0).toInt(),
+    primaryCompleted: json['primaryCompleted'] == true,
+    personalRecords: (json['personalRecords'] as num? ?? 0).toInt(),
+    template: json['template'] is Map ? WorkoutTemplate.fromJson(Map<String, dynamic>.from(json['template'] as Map)) : null,
+  );
+}
+
+class WeeklyRecap {
+  const WeeklyRecap({required this.plannedDays, required this.completedDays,
+    required this.workouts, required this.recoveryDays, required this.rp,
+    required this.personalRecords, required this.longestStreak, required this.nextWeek});
+  final int plannedDays;
+  final int completedDays;
+  final int workouts;
+  final int recoveryDays;
+  final int rp;
+  final int personalRecords;
+  final int longestStreak;
+  final List<ProgramDay> nextWeek;
+  double get consistencyPercent => plannedDays == 0 ? 0 : 100 * completedDays / plannedDays;
+}
+
+class PlanAdaptationSuggestion {
+  const PlanAdaptationSuggestion({required this.id, required this.title,
+    required this.explanation, required this.workout});
+  final String id;
+  final String title;
+  final String explanation;
+  final WorkoutTemplate workout;
 }

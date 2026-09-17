@@ -1,7 +1,7 @@
 name: Deploy PWA to GitHub Pages
 on:
   workflow_run:
-    workflows: ["ConsistiFit CI"]
+    workflows: ["ConsistiFit Web CI"]
     types: [completed]
     branches: [main]
   workflow_dispatch:

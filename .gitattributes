@@ -1,0 +1,3 @@
+# Active product is the web/PWA. Keep the parked Flutter prototype out of
+# GitHub's language statistics until native development resumes.
+flutter_app/** linguist-detectable=false

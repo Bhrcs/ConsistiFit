@@ -73,7 +73,8 @@ void main() {
     expect(find.text('Workout preview'), findsOneWidget);
     expect(find.byType(Checkbox), findsNothing);
     expect(tester.takeException(), isNull);
-    await tester.tap(find.text('Start workout'));
+    final startButton = tester.widget<FilledButton>(find.widgetWithText(FilledButton, 'Start workout'));
+    startButton.onPressed!.call();
     await tester.pumpAndSettle();
     expect(find.byType(Checkbox), findsWidgets);
     await tester.scrollUntilVisible(find.byType(Checkbox).first, 160, scrollable: find.byType(Scrollable).first);

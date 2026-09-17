@@ -40,22 +40,28 @@ class HealthSnapshot {
 }
 
 class LocalStateService {
+  static final LocalStateStore _defaultStore = _PreferencesStore();
+  static final Expando<Future<void>> _writeQueues =
+      Expando<Future<void>>('ConsistiFit local write queues');
+
   LocalStateService({LocalStateStore? store, DateTime Function()? clock})
-      : _prefs = store ?? _PreferencesStore(), _clock = clock ?? DateTime.now;
+      : _prefs = store ?? _defaultStore, _clock = clock ?? DateTime.now;
   final LocalStateStore _prefs;
   final DateTime Function() _clock;
   static const _engine = WorkoutEngine();
   static const _generator = ProgramGenerator();
   static const _storageKey = 'consistifit_ux_v1';
-  static Future<void> _writes = Future<void>.value();
   static const _zeroReward = RewardResult(rp: 0, xp: 0, coins: 0);
   static const _trainingReward = RewardResult(rp: 30, xp: 220, coins: 85);
 
-  // All reward-bearing writes share one queue and one JSON commit, including
-  // across screen/service instances. History, claim and balance change together.
+  // All writes that share the same backing store share one queue and one JSON
+  // commit. Separate injected stores stay isolated, which prevents unrelated
+  // widget tests (or future independent stores) from blocking each other.
   Future<T> _serial<T>(Future<T> Function() operation) {
-    final result = _writes.then((_) => operation());
-    _writes = result.then<void>((_) {}, onError: (Object _, StackTrace __) {});
+    final previous = _writeQueues[_prefs] ?? Future<void>.value();
+    final result = previous.then((_) => operation());
+    _writeQueues[_prefs] =
+        result.then<void>((_) {}, onError: (Object _, StackTrace __) {});
     return result;
   }
 

@@ -1,0 +1,55 @@
+name: Web Quality Audit
+on:
+  schedule:
+    - cron: '37 11 * * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+  issues: write
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Verify production is reachable and complete
+        run: npm run check:production
+      - name: Check dependency security
+        run: npm audit --audit-level=high
+      - name: Run Lighthouse quality budgets
+        run: npx --yes @lhci/cli@0.14.0 autorun --config=.lighthouserc.json
+      - name: Upload Lighthouse reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouse-${{ github.run_id }}
+          path: lighthouse-results
+          if-no-files-found: ignore
+          retention-days: 14
+      - name: Open or update audit issue
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TITLE='[Automation] Web quality audit needs attention'
+          ISSUE=$(gh issue list --state open --search "$TITLE in:title" --json number --jq '.[0].number // empty')
+          BODY="The scheduled ConsistiFit web audit failed at $(date -u +'%Y-%m-%d %H:%M UTC'). This audit checks live availability, dependency security, accessibility, best practices, performance, and SEO budgets.\n\nWorkflow: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          if [ -n "$ISSUE" ]; then
+            gh issue comment "$ISSUE" --body "$BODY"
+          else
+            gh issue create --title "$TITLE" --body "$BODY"
+          fi
+      - name: Close recovered audit issue
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TITLE='[Automation] Web quality audit needs attention'
+          ISSUE=$(gh issue list --state open --search "$TITLE in:title" --json number --jq '.[0].number // empty')
+          if [ -n "$ISSUE" ]; then
+            gh issue close "$ISSUE" --comment "The automated web quality audit is healthy again as of $(date -u +'%Y-%m-%d %H:%M UTC')."
+          fi

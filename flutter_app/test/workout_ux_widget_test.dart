@@ -66,6 +66,8 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
     final local = LocalStateService(store: _MemoryStore(), clock: () => DateTime(2026, 9, 14, 10));
+    final exercise = const ProgramGenerator().generateFocused(ProgramPreferences.homeDefault, 'Back').exercises.first;
+    await local.setTodayOverride(WorkoutTemplate(name: 'Back focus', exercises: [exercise.copyWith(sets: 3)], estimatedMinutes: 20));
     await tester.pumpWidget(_app(WorkoutScreen(localState: local), scale: 2));
     await tester.pumpAndSettle();
     expect(find.text('Workout preview'), findsOneWidget);
@@ -73,7 +75,8 @@ void main() {
     expect(tester.takeException(), isNull);
     await tester.tap(find.text('Start workout'));
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.byType(Checkbox).first, 160);
+    expect(find.byType(Checkbox), findsWidgets);
+    await tester.scrollUntilVisible(find.byType(Checkbox).first, 160, scrollable: find.byType(Scrollable).first);
     await tester.tap(find.byType(Checkbox).first);
     await tester.pump();
     await tester.drag(find.byType(ListView).first, const Offset(0, 500));

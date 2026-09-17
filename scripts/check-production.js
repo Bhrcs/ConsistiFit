@@ -1,20 +1,25 @@
 const baseUrl = new URL(process.env.CONSISTIFIT_URL || 'https://bhrcs.github.io/ConsistiFit/');
+const expectedCommit = (process.env.CONSISTIFIT_EXPECTED_COMMIT || '').trim();
 
-async function fetchWithRetry(relative, attempts = 3) {
+async function fetchWithRetry(relative, attempts = 5) {
   const url = new URL(relative, baseUrl);
   let lastError;
   for (let attempt = 1; attempt <= attempts; attempt++) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 15000);
     try {
-      const response = await fetch(url, { redirect: 'follow', signal: controller.signal, headers: { 'cache-control': 'no-cache' } });
+      const response = await fetch(url, {
+        redirect: 'follow',
+        signal: controller.signal,
+        headers: { 'cache-control': 'no-cache', pragma: 'no-cache' }
+      });
       clearTimeout(timeout);
       if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
       return { url, response, text: await response.text() };
     } catch (error) {
       clearTimeout(timeout);
       lastError = error;
-      if (attempt < attempts) await new Promise(resolve => setTimeout(resolve, attempt * 1500));
+      if (attempt < attempts) await new Promise(resolve => setTimeout(resolve, Math.min(10000, attempt * 2000)));
     }
   }
   throw new Error(`${url}: ${lastError?.message || lastError}`);
@@ -36,6 +41,9 @@ async function fetchWithRetry(relative, attempts = 3) {
   const buildInfo = JSON.parse(build.text);
   if (!buildInfo.commit || !buildInfo.buildId) throw new Error('Production build-info.json is incomplete');
   if (!sw.text.includes(buildInfo.buildId)) throw new Error('Production build-info does not match the active service-worker cache');
+  if (expectedCommit && buildInfo.commit !== expectedCommit) {
+    throw new Error(`Production commit mismatch: expected ${expectedCommit}, live ${buildInfo.commit}`);
+  }
 
   const localRefs = new Set();
   for (const match of home.text.matchAll(/(?:src|href)=["']([^"']+)["']/g)) {
@@ -46,7 +54,7 @@ async function fetchWithRetry(relative, attempts = 3) {
   }
   for (const url of localRefs) {
     const relative = url.slice(baseUrl.href.length);
-    await fetchWithRetry(relative, 2);
+    await fetchWithRetry(relative, 3);
   }
 
   console.log(`Production healthy: ${baseUrl.href}`);

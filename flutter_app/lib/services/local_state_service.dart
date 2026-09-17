@@ -81,11 +81,15 @@ class LocalStateService {
     if (raw != null) {
       final data = _map(jsonDecode(raw));
       if (data['version'] != 1) throw StateError('This local save uses an unsupported version.');
+      if (data['trackingStartedDay'] == null) {
+        final known = <String>{_todayKey(), ...(data['days'] as Map).keys.cast<String>()}.toList()..sort();
+        data['trackingStartedDay'] = known.first;
+      }
       return data;
     }
     final data = <String, dynamic>{'version': 1, 'days': <String, dynamic>{},
       'history': <dynamic>[], 'saved': <dynamic>[], 'sessions': <String, dynamic>{},
-      'dismissed': <String>[], 'nextId': 0};
+      'dismissed': <String>[], 'nextId': 0, 'trackingStartedDay': _todayKey()};
     // Legacy profiles already include the last workout's reward. Import its
     // completion without awarding again; older unknown history stays unknown.
     final legacy = await _prefs.getString('last_workout');
@@ -104,8 +108,19 @@ class LocalStateService {
           'primary': true, 'codes': <String>['primary', 'workout'], 'rp': 35,
           'completionKind': 'workout', 'legacy': true,
         };
+        if (dayKey.compareTo(data['trackingStartedDay'] as String) < 0) data['trackingStartedDay'] = dayKey;
       } catch (_) {
         // A malformed old optional history must not destroy the profile.
+      }
+    }
+    // Old daily missions have no global start timestamp. Known mission dates
+    // this week establish the earliest observable tracking date for the recap.
+    final now = _clock();
+    for (var offset = 0; offset < now.weekday; offset++) {
+      final dayKey = _key(DateTime(now.year, now.month, now.day - offset));
+      final missions = await _prefs.getStringList('missions_$dayKey');
+      if (missions != null && missions.isNotEmpty && dayKey.compareTo(data['trackingStartedDay'] as String) < 0) {
+        data['trackingStartedDay'] = dayKey;
       }
     }
     return data;
@@ -199,24 +214,33 @@ class LocalStateService {
     return ((await _day(data, _todayKey()))['codes'] as List).cast<String>().toSet();
   }
   Future<RewardResult?> completeDailyMission(String code) => _serial(() async {
-    final reward = missionRewards[code];
-    if (reward == null) throw ArgumentError.value(code, 'code', 'Unknown mission');
+    if (!missionRewards.containsKey(code)) throw ArgumentError.value(code, 'code', 'Unknown mission');
     final data = await _load();
     final key = _todayKey();
     final day = await _day(data, key);
     final codes = (day['codes'] as List).cast<String>().toSet();
-    if (codes.contains(code) || (code == 'recovery' && day['primary'] == true)) return null;
-    if (code == 'recovery' && day['plannedKind'] != ProgramDayKind.recovery.name) {
+    final recoveryMobility = code == 'mobility' && day['plannedKind'] == ProgramDayKind.recovery.name;
+    final mission = recoveryMobility ? 'recovery' : code;
+    if (code == 'mobility' && (await mobilitySecondsToday()) < 600) return null;
+    if (codes.contains(mission) || (mission == 'recovery' && day['primary'] == true)) {
+      if (recoveryMobility && codes.add('mobility')) {
+        day['codes'] = codes.toList();
+        await _save(data);
+      }
+      return null;
+    }
+    if (mission == 'recovery' && day['plannedKind'] != ProgramDayKind.recovery.name) {
       throw StateError('Recovery credit is available on a planned recovery day.');
     }
-    codes.add(code);
-    if (code == 'recovery') {
+    codes.add(mission);
+    if (recoveryMobility) codes.add('mobility');
+    if (mission == 'recovery') {
       day['primary'] = true;
       day['completionKind'] = 'recovery';
       codes.add('primary');
     }
     day['codes'] = codes.toList();
-    final result = await _award(data, day, reward, primaryDay: code == 'recovery' ? key : null);
+    final result = await _award(data, day, missionRewards[mission]!, primaryDay: mission == 'recovery' ? key : null);
     await _save(data);
     return result;
   });
@@ -239,6 +263,12 @@ class LocalStateService {
     final result = active is Map ? ActiveWorkoutSession.fromJson(_map(active)).template : await _effective(day);
     await _save(data);
     return result;
+  });
+  Future<ProgramDayKind> todayPlannedKind() => _serial(() async {
+    final data = await _load();
+    final day = await _day(data, _todayKey());
+    await _save(data);
+    return ProgramDayKind.values.byName(day['plannedKind'] as String);
   });
   Future<WorkoutTemplate?> todayOverride() async {
     final day = await _day(await _load(), _todayKey());
@@ -329,15 +359,15 @@ class LocalStateService {
       final exercise = expected[set.exerciseName];
       if (exercise == null || set.setNumber < 1 || set.setNumber > exercise.sets ||
           !keys.add('${set.exerciseName}:${set.setNumber}') || !set.weight.isFinite || set.weight < 0 || set.reps < 0 ||
-          (set.completed && !exercise.isTimed && set.reps == 0)) {
+          set.reps > (exercise.isTimed ? 86400 : 1000) || (set.completed && set.reps == 0)) {
         throw ArgumentError('Invalid or duplicate set in this workout.');
       }
       if (set.completed) completed.add(set);
     }
     if (completed.isEmpty) throw StateError('Complete at least one set before saving.');
     final day = await _day(data, session.dayKey);
-    final full = completed.length == session.template.totalSets;
-    final earnsPrimary = full && day['primary'] != true;
+    final qualifies = completed.length >= session.template.requiredCompletedSets;
+    final earnsPrimary = qualifies && day['primary'] != true;
     final codes = <String>{...(day['codes'] as List).cast<String>()};
     var base = _zeroReward;
     if (earnsPrimary) {
@@ -391,14 +421,18 @@ class LocalStateService {
     return lines;
   }
 
-  Future<WeeklyRecap> weeklyRecap() async {
+  Future<WeeklyRecap> weeklyRecap() => _serial(() async {
     final data = await _load();
     final now = _clock();
     final monday = DateTime(now.year, now.month, now.day - now.weekday + 1);
     var completed = 0, recovery = 0, rp = 0, streak = 0, longest = 0;
+    var plannedDays = 0;
+    final trackingStart = data['trackingStartedDay'] as String;
     final keys = <String>{};
     for (var offset = 0; offset < now.weekday; offset++) {
       final key = _key(DateTime(monday.year, monday.month, monday.day + offset));
+      if (key.compareTo(trackingStart) < 0) continue;
+      plannedDays++;
       keys.add(key);
       final row = await _day(data, key);
       if (row['primary'] == true) {
@@ -411,11 +445,12 @@ class LocalStateService {
     }
     final history = (data['history'] as List).map((row) => WorkoutHistoryEntry.fromJson(_map(row)))
       .where((entry) => keys.contains(entry.dayKey)).toList();
-    return WeeklyRecap(plannedDays: now.weekday, completedDays: completed,
+    await _save(data);
+    return WeeklyRecap(plannedDays: plannedDays, completedDays: completed,
       workouts: history.length, recoveryDays: recovery, rp: rp,
       personalRecords: history.fold(0, (count, entry) => count + entry.personalRecords),
       longestStreak: longest, nextWeek: _generator.generate(await programPreferences()).week);
-  }
+  });
 
   Future<PlanAdaptationSuggestion?> adaptationSuggestion() async {
     final data = await _load();

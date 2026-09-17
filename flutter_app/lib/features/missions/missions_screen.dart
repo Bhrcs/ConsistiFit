@@ -25,6 +25,7 @@ class _MissionsScreenState extends State<MissionsScreen> with WidgetsBindingObse
   int mobilitySavedSeconds = 0;
   Timer? ticker;
   WorkoutTemplate? todayWorkout;
+  bool plannedRecovery = false;
 
   int get mobilityTotalSeconds => mobilitySavedSeconds + mobilityWatch.elapsed.inSeconds;
 
@@ -61,6 +62,7 @@ class _MissionsScreenState extends State<MissionsScreen> with WidgetsBindingObse
     final latestHealth = await local.healthSnapshotToday();
     final mobility = await local.mobilitySecondsToday();
     final workout = await local.todayWorkout();
+    final plannedKind = await local.todayPlannedKind();
     if (!mounted) return;
     setState(() {
       healthConnected = connected;
@@ -68,6 +70,7 @@ class _MissionsScreenState extends State<MissionsScreen> with WidgetsBindingObse
       healthSnapshot = latestHealth;
       mobilitySavedSeconds = mobility;
       todayWorkout = workout;
+      plannedRecovery = plannedKind == ProgramDayKind.recovery;
       loading = false;
     });
   }
@@ -158,14 +161,16 @@ class _MissionsScreenState extends State<MissionsScreen> with WidgetsBindingObse
     final mobilityProgress = (mobilityTotalSeconds / 600).clamp(0.0, 1.0);
     final stepProgress = (healthSnapshot.steps / 8000).clamp(0.0, 1.0);
     final staticCodes = <String>{'checkin', 'primary'};
-    final count = completed.intersection(<String>{'steps', 'mobility', ...staticCodes}).length;
+    final count = completed.intersection(<String>{'steps', if (!plannedRecovery) 'mobility', ...staticCodes}).length;
+    final missionCount = plannedRecovery ? 3 : 4;
+    final mobilityDone = completed.contains('mobility') || (plannedRecovery && completed.contains('primary'));
 
     return SafeArea(
       child: ListView(
         padding: const EdgeInsets.all(20),
         children: <Widget>[
           Text('MISSIONS', style: TextStyle(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.w800)),
-          Text(loading ? 'Loading…' : '$count of 4 logged', style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900)),
+          Text(loading ? 'Loading…' : '$count of $missionCount logged', style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900)),
           const SizedBox(height: 8),
           const Text('Steps can sync from Apple Health / Health Connect. Mobility is measured with the in-app timer.', style: TextStyle(color: Colors.white60)),
           const SizedBox(height: 20),
@@ -219,14 +224,14 @@ class _MissionsScreenState extends State<MissionsScreen> with WidgetsBindingObse
                 children: <Widget>[
                   Row(
                     children: <Widget>[
-                      Icon(completed.contains('mobility') ? Icons.check_circle : Icons.self_improvement),
+                      Icon(mobilityDone ? Icons.check_circle : Icons.self_improvement),
                       const SizedBox(width: 10),
                       const Expanded(child: Text('10-minute mobility reset', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900))),
-                      if (completed.contains('mobility')) const Text('DONE'),
+                      if (mobilityDone) const Text('DONE'),
                     ],
                   ),
                   const SizedBox(height: 8),
-                  Text('${_clock(mobilityTotalSeconds)} / 10:00 · +10 RP', style: const TextStyle(color: Colors.white70)),
+                  Text('${_clock(mobilityTotalSeconds)} / 10:00 · ${plannedRecovery ? 'fulfills planned recovery · +30 RP once' : '+10 RP'}', style: const TextStyle(color: Colors.white70)),
                   const SizedBox(height: 8),
                   const Text('Move gently through comfortable shoulder, hip, and ankle movements. Pause whenever you need; the timer keeps your saved progress.', style: TextStyle(color: Colors.white70)),
                   const SizedBox(height: 10),
@@ -236,7 +241,7 @@ class _MissionsScreenState extends State<MissionsScreen> with WidgetsBindingObse
                     spacing: 8,
                     children: <Widget>[
                       FilledButton.icon(
-                        onPressed: completed.contains('mobility') ? null : _toggleMobility,
+                        onPressed: mobilityDone ? null : _toggleMobility,
                         icon: Icon(mobilityWatch.isRunning ? Icons.pause : Icons.play_arrow),
                         label: Text(mobilityWatch.isRunning ? 'Pause & save' : 'Start mobility'),
                       ),

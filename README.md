@@ -22,7 +22,7 @@ The current Flutter build is intentionally **local-first**. Profile progress, RP
 - Extra unscheduled workouts do not farm RP.
 
 ## Current workout reward
-A scheduled workout plus difficulty check-in awards **35 RP, 240 XP and 85 Coins** in local prototype state.
+A planned workout awards **30 base RP** once per day, with **5 RP** for that day's check-in. Planned recovery also earns **30 base RP**. Extra sessions remain in history without repeating the primary reward.
 
 ## Today and workout changes
 Today now includes a session preview, equipment and recent performance, recovery guidance, weekly recap and explained next-time targets. Replace today's session with a compatible saved/program workout or a muscle-focused workout from the local exercise library. Overrides apply to that date only; saving for reuse is explicit. Training and recovery share one primary reward claim per day, so swaps and extra sessions cannot farm RP.

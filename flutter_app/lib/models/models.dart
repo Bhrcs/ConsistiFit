@@ -182,6 +182,7 @@ class WorkoutTemplate {
   final WorkoutKind kind;
 
   int get totalSets => exercises.fold(0, (total, exercise) => total + exercise.sets);
+  int get requiredCompletedSets => (totalSets * 0.7).ceil();
 
   Map<String, dynamic> toJson() => <String, dynamic>{
     'name': name, 'estimatedMinutes': estimatedMinutes, 'kind': kind.name,
@@ -245,6 +246,7 @@ class LoggedSet {
   final String exerciseName;
   final int setNumber;
   final double weight;
+  /// Repetitions for resistance sets; logged seconds for timed prescriptions.
   final int reps;
   final bool completed;
 

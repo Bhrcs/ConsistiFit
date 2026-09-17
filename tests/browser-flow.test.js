@@ -44,7 +44,7 @@ const server = http.createServer((req, res) => {
     await page.getByRole('button',{name:'Chest',exact:true}).click();
     await page.getByRole('button',{name:'Use for today',exact:true}).click();
     await page.getByRole('button',{name:'Start workout',exact:true}).click();
-    await page.evaluate(()=>{state.workout.active.exercises.forEach(ex=>ex.sets.forEach(s=>{s.done=true;s.reps=10;}));finishWorkout('Good');});
+    await page.evaluate(()=>{state.workout.active.exercises.forEach(ex=>ex.sets.forEach(s=>{s.done=true;s.reps=10;}));finishWorkout('Good');finishWorkout('Good');});
     await page.getByText('NEXT TIME',{exact:true}).waitFor();
     assert.equal(await page.evaluate(()=>state.profile.rp),reward);
     assert((await page.locator('#sheetContent').innerText()).includes('no additional primary reward'));

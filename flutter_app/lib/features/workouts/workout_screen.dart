@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -16,7 +17,7 @@ class WorkoutScreen extends StatefulWidget {
   State<WorkoutScreen> createState() => _WorkoutScreenState();
 }
 
-class _WorkoutScreenState extends State<WorkoutScreen> {
+class _WorkoutScreenState extends State<WorkoutScreen> with WidgetsBindingObserver {
   late final _state = widget.localState ?? LocalStateService();
   final _engine = const WorkoutEngine();
   WorkoutTemplate? workout;
@@ -26,6 +27,7 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
   int activeExercise = 0;
   DateTime? restEndsAt;
   Timer? restTimer;
+  Timer? _rolloverTimer;
   bool submitting = false;
   bool loading = true;
   bool primaryDone = false;
@@ -36,7 +38,30 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
   String feedback = '';
 
   @override
-  void initState() { super.initState(); _loadWorkout(); }
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _loadWorkout();
+    _scheduleDayRefresh();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      if (session == null) _loadWorkout();
+      _scheduleDayRefresh();
+    }
+  }
+
+  void _scheduleDayRefresh() {
+    _rolloverTimer?.cancel();
+    final now = DateTime.now();
+    _rolloverTimer = Timer(DateTime(now.year, now.month, now.day + 1).difference(now), () {
+      if (!mounted) return;
+      if (session == null) _loadWorkout();
+      _scheduleDayRefresh();
+    });
+  }
 
   Future<void> _loadWorkout() async {
     try {
@@ -65,10 +90,16 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
     setState(() => submitting = true);
     try {
       final active = await _state.startWorkout();
+      if (jsonEncode(active.template.toJson()) != jsonEncode(workout?.toJson())) {
+        await _state.discardWorkout(active.id);
+        await _loadWorkout();
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Your workout changed. Review the updated preview before starting.')));
+        return;
+      }
       final generated = <LoggedSet>[
         for (final exercise in active.template.exercises)
           for (var i = 1; i <= exercise.sets; i++)
-            LoggedSet(exerciseName: exercise.name, setNumber: i, weight: _lastSet(exercise.name, i)?.weight ?? 0, reps: exercise.isTimed ? 0 : _lastSet(exercise.name, i)?.reps ?? exercise.repMin ?? 0, completed: false),
+            LoggedSet(exerciseName: exercise.name, setNumber: i, weight: exercise.isTimed ? 0 : _lastSet(exercise.name, i)?.weight ?? 0, reps: exercise.isTimed ? _lastSet(exercise.name, i)?.reps ?? 30 : _lastSet(exercise.name, i)?.reps ?? exercise.repMin ?? 0, completed: false),
       ];
       if (!mounted) return;
       setState(() { session = active; workout = active.template; sets = generated; activeExercise = 0; });
@@ -94,7 +125,7 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
       final previous = entry.sets.where((set) => set.exerciseName == exercise.name && set.completed).toList();
       if (previous.isNotEmpty) {
         return exercise.isTimed
-            ? 'Last time: ${previous.length} sets logged'
+            ? 'Last time: ${previous.first.reps} seconds · ${previous.length} sets logged'
             : 'Last time: ${previous.first.weight.toStringAsFixed(0)} lb × ${previous.first.reps} · ${previous.length} sets';
       }
     }
@@ -102,7 +133,12 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
   }
 
   @override
-  void dispose() { restTimer?.cancel(); super.dispose(); }
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    restTimer?.cancel();
+    _rolloverTimer?.cancel();
+    super.dispose();
+  }
 
   ExercisePrescription get exercise => workout!.exercises[activeExercise];
   int get restSeconds => restEndsAt == null ? 0 : ((restEndsAt!.difference(DateTime.now()).inMilliseconds / 1000).ceil()).clamp(0, 3600).toInt();
@@ -115,14 +151,14 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
 
   void _changeReps(int index, int delta) {
     final current = sets[index];
-    setState(() => sets[index] = current.copyWith(reps: (current.reps + delta).clamp(0, 100).toInt()));
+    setState(() => sets[index] = current.copyWith(reps: (current.reps + delta).clamp(0, exercise.isTimed ? 86400 : 100).toInt()));
   }
 
   void _toggleSet(int index) {
     final current = sets[index];
     final completed = !current.completed;
-    if (completed && !exercise.isTimed && current.reps == 0) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Enter your completed reps before checking off this set.')));
+    if (completed && current.reps == 0) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(exercise.isTimed ? 'Enter your completed duration before checking off this set.' : 'Enter your completed reps before checking off this set.')));
       return;
     }
     final prior = history.expand((entry) => entry.sets).where((set) => set.exerciseName == current.exerciseName && set.completed).toList();
@@ -194,7 +230,7 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
       builder: (context) => SingleChildScrollView(child: Padding(padding: const EdgeInsets.fromLTRB(20, 0, 20, 24), child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
         const Text('How did today feel?', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900)),
         const SizedBox(height: 10),
-        Text('${sets.where((set) => set.completed).length} / ${sets.length} sets complete. ${sets.every((set) => set.completed) ? 'Your check-in helps plan next time.' : 'You can save a partial session. The primary workout mission requires all planned sets.'}'),
+        Text('${sets.where((set) => set.completed).length} / ${sets.length} sets complete. The primary mission requires at least ${active.template.requiredCompletedSets} planned sets (70%). You can save a shorter session with your check-in.'),
         const SizedBox(height: 8),
         for (final item in const <(SessionDifficulty, String)>[(SessionDifficulty.tooEasy, 'Too easy'), (SessionDifficulty.good, 'Good'), (SessionDifficulty.hard, 'Hard'), (SessionDifficulty.tooHard, 'Too hard')])
           ListTile(contentPadding: EdgeInsets.zero, title: Text(item.$2), trailing: const Icon(Icons.chevron_right), onTap: () => Navigator.pop(context, item.$1)),
@@ -213,7 +249,9 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
         content: SingleChildScrollView(child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
           Text('Saved on this device · +${reward.rp} RP · +${reward.xp} XP · +${reward.coins} Coins'),
           const SizedBox(height: 8),
-          Text(reward.rp > 0 ? 'The primary mission for ${active.dayKey} is complete.' : primaryDone ? 'This session day’s primary reward was already earned. This session is in your history.' : 'Your partial session is saved. Complete the full day’s plan to earn its primary reward.'),
+          Text(sets.where((set) => set.completed).length >= active.template.requiredCompletedSets ? 'The primary mission for ${active.dayKey} is complete.' : primaryDone ? 'This session day’s primary reward was already earned. This partial session is in your history.' : 'Your partial session and check-in are saved. This session did not reach the ${active.template.requiredCompletedSets}-set primary target.'),
+          const SizedBox(height: 8),
+          const Text('The +5 RP check-in is awarded once per session day, including a partial session. It is not repeated when you complete the day’s workout.', style: TextStyle(color: Colors.white70)),
           const SizedBox(height: 8),
           Text('Volume: ${_engine.sessionVolume(sets).toStringAsFixed(0)} lb'),
           const SizedBox(height: 18),
@@ -306,7 +344,7 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
           const SizedBox(height: 8),
           Text(equipment.isEmpty ? 'Bodyweight' : equipment),
           const SizedBox(height: 8),
-          Text(primaryDone ? 'Today’s primary reward is already complete. You can still log a session.' : 'Complete the prescribed sets and check in to satisfy today’s primary mission once.'),
+          Text(primaryDone ? 'Today’s primary reward is already complete. You can still log a session.' : 'Complete at least ${selected.requiredCompletedSets} of ${selected.totalSets} planned sets (70%) and check in to satisfy today’s primary mission once.'),
         ]))),
         const SizedBox(height: 12),
         OutlinedButton.icon(onPressed: submitting ? null : _changeWorkout, icon: const Icon(Icons.swap_horiz), label: const Text('Change today’s workout')),
@@ -338,7 +376,10 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
           Expanded(child: Text('SET ${set.setNumber}${set.completed ? ' · Complete' : ''}', style: const TextStyle(fontWeight: FontWeight.w800))),
           Semantics(label: '${set.completed ? 'Mark incomplete' : 'Complete'} ${exercise.name} set ${set.setNumber}', child: Checkbox(value: set.completed, onChanged: submitting || saved ? null : (_) => _toggleSet(index))),
         ]),
-        if (exercise.isTimed) const Text('Complete the timed or controlled effort, then check off this set.')
+        if (exercise.isTimed) ...[
+          const Text('Enter the seconds you completed, then check off this set.'),
+          _Stepper(label: '${set.reps} seconds', field: '${exercise.name} set ${set.setNumber} seconds', onMinus: enabled ? () => _changeReps(index, -15) : null, onPlus: enabled ? () => _changeReps(index, 15) : null),
+        ]
         else Wrap(spacing: 20, runSpacing: 12, children: [
           _Stepper(label: '${set.weight.toStringAsFixed(0)} lb', field: '${exercise.name} set ${set.setNumber} weight', onMinus: enabled ? () => _changeWeight(index, -exercise.loadIncrement) : null, onPlus: enabled ? () => _changeWeight(index, exercise.loadIncrement) : null),
           _Stepper(label: '${set.reps} reps', field: '${exercise.name} set ${set.setNumber} reps', onMinus: enabled ? () => _changeReps(index, -1) : null, onPlus: enabled ? () => _changeReps(index, 1) : null),

@@ -3,7 +3,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:consistifit/core/theme/app_theme.dart';
 import 'package:consistifit/features/progress/weekly_recap_card.dart';
 import 'package:consistifit/features/workouts/workout_screen.dart';
+import 'package:consistifit/models/models.dart';
 import 'package:consistifit/services/local_state_service.dart';
+import 'package:consistifit/services/program_generator.dart';
 
 class _MemoryStore implements LocalStateStore {
   final Map<String, Object> values = {};
@@ -36,6 +38,7 @@ void main() {
     expect(find.text('Start workout'), findsNothing);
     expect(find.byType(Checkbox), findsNothing);
     expect(await local.todayOverride(), isNull);
+    await tester.pumpWidget(const SizedBox());
   });
 
   testWidgets('focus choice is day only unless saving is explicitly selected', (tester) async {
@@ -54,6 +57,7 @@ void main() {
     expect(find.text('Workout preview'), findsOneWidget);
     expect(find.text('Start workout'), findsOneWidget);
     expect(find.byType(Checkbox), findsNothing);
+    await tester.pumpWidget(const SizedBox());
   });
 
   testWidgets('preview and set feedback fit a narrow phone with large text', (tester) async {
@@ -62,7 +66,7 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
     final local = LocalStateService(store: _MemoryStore(), clock: () => DateTime(2026, 9, 14, 10));
-    await tester.pumpWidget(_app(WorkoutScreen(localState: local), scale: 1.8));
+    await tester.pumpWidget(_app(WorkoutScreen(localState: local), scale: 2));
     await tester.pumpAndSettle();
     expect(find.text('Workout preview'), findsOneWidget);
     expect(find.byType(Checkbox), findsNothing);
@@ -89,8 +93,31 @@ void main() {
     final recap = await local.weeklyRecap();
     await tester.pumpWidget(_app(Scaffold(body: ListView(children: [WeeklyRecapCard(recap: recap, showSchedule: true)])), scale: 2));
     await tester.pumpAndSettle();
-    expect(find.text('1 / 2 planned days completed'), findsOneWidget);
+    expect(find.text('1 / 1 planned days completed'), findsOneWidget);
     expect(find.text('1 recovery days'), findsOneWidget);
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('partial check-in reward does not announce primary completion', (tester) async {
+    final local = LocalStateService(store: _MemoryStore(), clock: () => DateTime(2026, 9, 14, 10));
+    final exercise = const ProgramGenerator().generateFocused(ProgramPreferences.homeDefault, 'Back').exercises.first;
+    await local.setTodayOverride(WorkoutTemplate(name: 'Short back session', exercises: [exercise.copyWith(sets: 3)], estimatedMinutes: 10));
+    await tester.pumpWidget(_app(WorkoutScreen(localState: local)));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Start workout'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(Checkbox).first);
+    await tester.pump();
+    await tester.tap(find.text('Finish workout'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Good'));
+    await tester.pumpAndSettle();
+    expect(find.text('Workout saved'), findsOneWidget);
+    expect(find.textContaining('did not reach the 3-set primary target'), findsOneWidget);
+    expect(find.textContaining('The primary mission for'), findsNothing);
+    final entry = (await local.workoutHistory()).first;
+    expect(entry.rp, 5);
+    expect(entry.primaryCompleted, isFalse);
+    await tester.pumpWidget(const SizedBox());
   });
 }

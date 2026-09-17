@@ -212,7 +212,8 @@
   let sessionForSummary = null;
   const finishBeforeUx = finishWorkout;
   finishWorkout = function finishWithNextTime(difficulty) {
-    sessionForSummary = state.workout.active ? clone(state.workout.active) : null;
+    if (!state.workout.active) return;
+    sessionForSummary = clone(state.workout.active);
     finishBeforeUx(difficulty);
   };
   function summaryHTML() {

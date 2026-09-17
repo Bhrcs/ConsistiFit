@@ -25,7 +25,7 @@ List<LoggedSet> completeSets(WorkoutTemplate workout, {double weight = 20, bool 
   for (final exercise in workout.exercises)
     for (var number = 1; number <= exercise.sets; number++)
       LoggedSet(exerciseName: exercise.name, setNumber: number, weight: exercise.isTimed ? 0 : weight,
-        reps: (top ? exercise.repMax : exercise.repMin) ?? 0, completed: true),
+        reps: (top ? exercise.repMax : exercise.repMin) ?? 30, completed: true),
 ];
 
 void main() {
@@ -155,10 +155,14 @@ void main() {
     expect(await state.completedMissionCodesToday(), isNot(contains('primary')));
   });
 
-  test('timed catalog exercises can complete at zero reps', () async {
+  test('timed catalog exercises require positive logged seconds', () async {
     await state.setTodayOverride(generator.generateFocused(ProgramPreferences.homeDefault, 'Core'));
     final active = await state.startWorkout();
     expect(active.template.exercises.any((exercise) => exercise.isTimed), isTrue);
+    final timed = completeSets(active.template).where((set) =>
+      active.template.exercises.any((exercise) => exercise.isTimed && exercise.name == set.exerciseName)).first;
+    await expectLater(finish(state, active, sets: [timed.copyWith(reps: 0)]), throwsArgumentError);
+    await expectLater(finish(state, active, sets: [timed.copyWith(reps: 86401)]), throwsArgumentError);
     expect((await finish(state, active)).rp, 35);
   });
 
@@ -211,6 +215,84 @@ void main() {
     final nextWeek = await state.weeklyRecap();
     expect(nextWeek.completedDays, 0);
     expect(nextWeek.rp, 0);
+  });
+
+  test('first tracked Wednesday excludes earlier days and later missed days count', () async {
+    now = DateTime(2026, 9, 16, 12);
+    await finish(state, await state.startWorkout());
+    final first = await state.weeklyRecap();
+    expect(first.plannedDays, 1);
+    expect(first.completedDays, 1);
+    expect(first.consistencyPercent, 100);
+    now = DateTime(2026, 9, 18, 12);
+    final reloaded = LocalStateService(store: store, clock: () => now);
+    final later = await reloaded.weeklyRecap();
+    expect(later.plannedDays, 3);
+    expect(later.completedDays, 1);
+    expect(later.consistencyPercent, closeTo(100 / 3, 0.001));
+  });
+
+  test('recap itself persists the start of tracking before any completion', () async {
+    now = DateTime(2026, 9, 16, 12);
+    expect((await state.weeklyRecap()).plannedDays, 1);
+    now = DateTime(2026, 9, 18, 12);
+    expect((await state.weeklyRecap()).plannedDays, 3);
+  });
+
+  test('70 percent boundary uses the frozen complete prescription', () async {
+    final first = await state.startWorkout();
+    final threshold = first.template.requiredCompletedSets;
+    expect(threshold, (first.template.totalSets * 0.7).ceil());
+    final below = completeSets(first.template).take(threshold - 1).toList();
+    expect((await finish(state, first, sets: below)).rp, 5);
+    expect(await state.completedMissionCodesToday(), isNot(contains('primary')));
+    final second = await state.startWorkout();
+    final boundary = completeSets(second.template).take(threshold).toList();
+    expect((await finish(state, second, sets: boundary)).rp, 30);
+    expect(await state.completedMissionCodesToday(), contains('primary'));
+  });
+
+  test('recovery mobility shares its primary budget with recovery and overrides', () async {
+    now = DateTime(2026, 9, 15, 12);
+    expect(await state.todayPlannedKind(), ProgramDayKind.recovery);
+    expect(await state.addMobilitySeconds(599), isNull);
+    expect((await state.addMobilitySeconds(1))!.rp, 30);
+    expect(await state.completedMissionCodesToday(), containsAll(['recovery', 'mobility', 'primary']));
+    expect(await state.completeDailyMission('recovery'), isNull);
+    expect(await state.addMobilitySeconds(600), isNull);
+    await state.setTodayOverride(generator.generateFocused(ProgramPreferences.homeDefault, 'Back'));
+    expect((await finish(state, await state.startWorkout())).rp, 5);
+    expect((await state.weeklyRecap()).rp, 35);
+  });
+
+  test('recovery first and override first cannot add a mobility bonus', () async {
+    now = DateTime(2026, 9, 15, 12);
+    await state.completeDailyMission('recovery');
+    expect(await state.addMobilitySeconds(600), isNull);
+    expect((await state.weeklyRecap()).rp, 30);
+    now = DateTime(2026, 9, 17, 12);
+    await state.setTodayOverride(generator.generateFocused(ProgramPreferences.homeDefault, 'Back'));
+    expect((await finish(state, await state.startWorkout())).rp, 35);
+    expect(await state.addMobilitySeconds(600), isNull);
+  });
+
+  test('training mobility retains its separate side mission reward', () async {
+    expect((await state.addMobilitySeconds(600))!.rp, 10);
+    expect(await state.completedMissionCodesToday(), isNot(contains('primary')));
+    expect((await finish(state, await state.startWorkout())).rp, 35);
+  });
+
+  test('environment changes affect the next workout, never an active snapshot', () async {
+    final active = await state.startWorkout();
+    final original = jsonEncode(active.template.toJson());
+    await state.saveProgramPreferences(const ProgramPreferences(goal: TrainingGoal.muscle,
+      experience: ExperienceLevel.beginner, environment: TrainingEnvironment.custom,
+      daysPerWeek: 3, sessionMinutes: 45));
+    expect(jsonEncode((await state.startWorkout()).template.toJson()), original);
+    expect(jsonEncode((await state.todayWorkout())!.toJson()), original);
+    expect((await finish(state, active)).rp, 35);
+    final next = await state.startWorkout();
+    expect(generator.isCompatible(next.template, await state.programPreferences()), isTrue);
   });
 
   test('adapting requires accept and never mutates the repeating schedule', () async {

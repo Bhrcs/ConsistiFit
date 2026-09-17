@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -18,23 +19,37 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   final _local = LocalStateService();
   late Future<_TodayData> _data;
   bool _busy = false;
+  Timer? _rolloverTimer;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _data = _load();
+    _scheduleDayRefresh();
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _rolloverTimer?.cancel();
     super.dispose();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) _refresh();
+    if (state == AppLifecycleState.resumed) { _refresh(); _scheduleDayRefresh(); }
+  }
+
+  void _scheduleDayRefresh() {
+    _rolloverTimer?.cancel();
+    final now = DateTime.now();
+    final nextDay = DateTime(now.year, now.month, now.day + 1);
+    _rolloverTimer = Timer(nextDay.difference(now), () {
+      if (!mounted) return;
+      _refresh();
+      _scheduleDayRefresh();
+    });
   }
 
   Future<_TodayData> _load() async {

@@ -6,7 +6,7 @@ const root = process.cwd();
 const dist = path.join(root, 'dist');
 
 function safeBuildId() {
-  let sha = process.env.GITHUB_SHA || process.env.CONSISTIFIT_BUILD_ID || '';
+  let sha = process.env.CONSISTIFIT_BUILD_ID || process.env.GITHUB_SHA || '';
   if (!sha) {
     try { sha = execSync('git rev-parse HEAD', { encoding: 'utf8' }).trim(); } catch (_) { sha = String(Date.now()); }
   }
@@ -52,8 +52,10 @@ if (!sw.includes('__BUILD_ID__')) throw new Error('service-worker.js is missing 
 sw = sw.replaceAll('__BUILD_ID__', buildId);
 fs.writeFileSync(serviceWorkerPath, sw);
 
-let fullSha = process.env.GITHUB_SHA || buildId;
-try { if (!process.env.GITHUB_SHA) fullSha = execSync('git rev-parse HEAD', { encoding: 'utf8' }).trim(); } catch (_) {}
+let fullSha = process.env.CONSISTIFIT_COMMIT || process.env.GITHUB_SHA || buildId;
+try {
+  if (!process.env.CONSISTIFIT_COMMIT && !process.env.GITHUB_SHA) fullSha = execSync('git rev-parse HEAD', { encoding: 'utf8' }).trim();
+} catch (_) {}
 const info = {
   app: 'ConsistiFit',
   commit: fullSha,

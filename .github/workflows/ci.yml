@@ -17,8 +17,18 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-      - run: npm test
+          cache: npm
       - run: npm ci
+      - run: npm test
+      - run: npm run build:web
+        env:
+          CONSISTIFIT_BUILD_ID: ${{ github.sha }}
+      - run: npm run verify:web
+      - uses: actions/upload-artifact@v4
+        with:
+          name: consistifit-web-${{ github.sha }}
+          path: dist
+          retention-days: 7
       - run: npx playwright install --with-deps chromium
       - run: npm run test:browser
 
